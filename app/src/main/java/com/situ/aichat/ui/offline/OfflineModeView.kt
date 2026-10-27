@@ -88,6 +88,11 @@ fun OfflineModeView(
     onEndMeeting: () -> Unit,
     onContinueMeeting: (endCardUuid: String) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * 压在本视图上下两端、却不占它布局高度的浮件 chrome（琉璃：顶栏与输入区都是 overlay）——列表顶 / 底先让出这块，
+     * 剧场自己的底留白 20dp 另加在输入区之上。暖陶的顶栏 / 输入托盘占布局 → 不传（= 0）。
+     */
+    chromeInsets: PaddingValues = PaddingValues(0.dp),
 ) {
     // 舞台调和色（§4.1·屏内所有用彩处的唯一来源）：角色主题色朝暖白混 35%，压振动。
     val themeColor = OfflineTheater.harmonize(parseOfflineThemeColor(themeColorHex))
@@ -140,7 +145,10 @@ fun OfflineModeView(
             reverseLayout = true,
             // 反转默认排布是 Bottom；锁 Top 保「内容铺不满一屏时贴顶」现状（同主聊天 ChatMessageList 口径）。
             verticalArrangement = Arrangement.Top,
-            contentPadding = PaddingValues(bottom = 20.dp),
+            contentPadding = PaddingValues(
+                top = chromeInsets.calculateTopPadding(),
+                bottom = chromeInsets.calculateBottomPadding() + 20.dp,
+            ),
             modifier = Modifier.fillMaxWidth(),
         ) {
             if (showLoadingScene) {

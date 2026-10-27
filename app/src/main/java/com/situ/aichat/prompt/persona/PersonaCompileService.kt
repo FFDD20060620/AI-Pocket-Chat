@@ -161,18 +161,21 @@ class PersonaCompileService @Inject constructor(
             ## anchor_basis：每个数值的依据（可选）
             键与 anchors 相同，值是**人设原文里的那几个字**（不超过 24 字），让作者一眼看出你为什么这么打分。
 
-            ## gains：她对什么事格外敏感 / 格外无感（只写与常人不同的项，其余略去）
-            一个真实的人，一定有几件别人很在乎、她却无所谓的事。这类「不吃这套」和敏感项同样重要，别只挑敏感的写——只写敏感项等于说她对什么都敏感，那就等于没写。
+            ## gains：TA 对什么事格外敏感 / 格外无感（只写与常人不同的项，其余略去）
+            一个真实的人，一定有几件别人很在乎、TA 却无所谓的事。这类「不吃这套」和敏感项同样重要，别只挑敏感的写——只写敏感项等于说 TA 对什么都敏感，那就等于没写。
             档位：0=不吃这套，2=很敏感（1=正常，不用写）。合法 key 只有下面这些，写别的会被丢弃：
             $GAIN_KEY_HINT
 
             ## custom_gains：人设里读出的、上面 27 项装不下的专属敏感点（没有就给空数组）
             label 不超过 12 字，写**能从聊天里看出来的事**；level 同上三档。
+            label 里不要写「她」「他」「你」「我」这类人称：说角色自己就写「自己」，说对方就写「对方」（例：「自己的作品被认真对待」）。
 
-            ## operators：她的固定反应（条件 → 动作，没有就给空数组）
+            ## operators：TA 的固定反应（条件 → 动作，没有就给空数组）
             合法 condition：$CONDITION_KEY_HINT
             合法 action：$ACTION_KEY_HINT
             同一个 condition 只写一条，最多 ${PersonaVocab.MAX_OPERATORS} 条。
+            条件和动作要搭得上、不自相矛盾（例如「想躲的时候 → 更想找人说话」就说不通）。
+            只写人设里读得出来的反应：人设明写了的都写上；人设没写、只是普通人大都会这样的（比如有事想分享的时候更想找人说话），不要自己补。读不出来就给空数组——宁缺毋滥。
 
             ## 底线
             - 人设里没写的，不要推断出一个「大众平均值」——略去比编造好。
@@ -307,7 +310,9 @@ class PersonaCompileService @Inject constructor(
 
         // 卷三 K-14：key 与中文标签并列（`g13 吵架 · 被凶`）——卷一只给 key，模型看着编号猜档位，投影表全白配。
         val GAIN_KEY_HINT = PersonaVocab.GAIN_KEYS.joinToString("、") { PersonaVocab.gainPromptLine(it) }
-        val CONDITION_KEY_HINT = PersonaVocab.CONDITIONS.keys.joinToString("、")
-        val ACTION_KEY_HINT = PersonaVocab.ACTIONS.keys.joinToString("、")
+        // 体检小毛病修复 F5a（2026-09-29）：算子同 K-14 带标签（`c04 想躲的时候`）——只给编号时三个体检角色的算子全空。
+        // 动作标签自带逗号（「不直说，绕着表达」），故动作用「；」连接。
+        val CONDITION_KEY_HINT = PersonaVocab.CONDITIONS.keys.joinToString("、") { PersonaVocab.conditionPromptLine(it) }
+        val ACTION_KEY_HINT = PersonaVocab.ACTIONS.keys.joinToString("；") { PersonaVocab.actionPromptLine(it) }
     }
 }

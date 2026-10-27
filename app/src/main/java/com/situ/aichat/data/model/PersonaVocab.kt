@@ -171,9 +171,59 @@ object PersonaVocab {
         "g27" to "被抛弃的信号",
     )
 
-    /** 提示词里的一行：`g13 吵架 · 被凶`（key 与中文标签并列，LLM 不用再猜编号）。未知 key 只回 key 本身。 */
-    fun gainPromptLine(key: String): String = GAIN_PROMPT_LABELS[key]?.let { "$key $it" } ?: key
+    /**
+     * 提示词里的一行：`g13 吵架 · 被凶`（key 与中文标签并列，LLM 不用再猜编号）。未知 key 只回 key 本身。
+     * 消费点 = 人设编译提示词与成长分析提示词——两处的「你」都是模型自己、角色叫 TA，而 g09 / g21 的 UI 标签带
+     * 「你（= 用户）/ 她（= 角色）」，原样放进去会人称对调，这两条换成 [PROMPT_NEUTRAL_LABELS]（2026-09-29 体检后续）。
+     */
+    fun gainPromptLine(key: String): String = (PROMPT_NEUTRAL_LABELS[key] ?: GAIN_PROMPT_LABELS[key])?.let { "$key $it" } ?: key
+
+    /** 编译 / 分析提示词专用的中性说法（只影响 [gainPromptLine]；[GAIN_PROMPT_LABELS] 与 zh 资源、编辑页零改）。 */
+    private val PROMPT_NEUTRAL_LABELS: Map<String, String> = mapOf(
+        "g09" to "对方记得 TA 说过的小事",
+        "g21" to "对方向 TA 坦白脆弱",
+    )
 
     /** 修缮卷 §3.7：只要中文标签（含 ` · ` 原样）——敏感点行 `PersonaGainsLine` 用；未知 key ⇒ null。 */
     fun gainLabel(key: String): String? = GAIN_PROMPT_LABELS[key]
+
+    /**
+     * 算子两端的**提示词专用**中文标签（体检小毛病修复 2026-09-29·F5a：编译提示词原先只列 `c01`/`a01` 编号，
+     * 模型看不懂只能留空，体检里三个角色的「固定反应」全空）。与 zh 资源 `persona_cond_cNN` / `persona_act_aNN`
+     * **同源双写**：改一处必改另一处——`AffectCoefficientsTest` 用 Robolectric 读 zh 资源逐字比对。
+     */
+    val CONDITION_PROMPT_LABELS: Map<String, String> = mapOf(
+        "c01" to "想道歉的时候",
+        "c02" to "想被哄的时候",
+        "c03" to "想试探的时候",
+        "c04" to "想躲的时候",
+        "c05" to "想分享的时候",
+        "c06" to "想确认的时候",
+        "c07" to "被夸的时候",
+        "c08" to "被批评的时候",
+        "c09" to "被冷落的时候",
+        "c10" to "深夜一个人的时候",
+        "c11" to "情绪很差的时候",
+        "c12" to "关系刚有进展的时候",
+    )
+
+    /** 见 [CONDITION_PROMPT_LABELS]。 */
+    val ACTION_PROMPT_LABELS: Map<String, String> = mapOf(
+        "a01" to "不直说，绕着表达",
+        "a02" to "转移话题",
+        "a03" to "话变少",
+        "a04" to "更想找人说话",
+        "a05" to "嘴上否认，行动上在意",
+        "a06" to "先冷一下再回",
+        "a07" to "用玩笑掩饰",
+        "a08" to "反问回去",
+        "a09" to "主动找点别的事做",
+        "a10" to "说反话",
+    )
+
+    /** 编译提示词里的一行：`c04 想躲的时候`。未知 key 只回 key 本身。 */
+    fun conditionPromptLine(key: String): String = CONDITION_PROMPT_LABELS[key]?.let { "$key $it" } ?: key
+
+    /** 编译提示词里的一行：`a05 嘴上否认，行动上在意`。未知 key 只回 key 本身。 */
+    fun actionPromptLine(key: String): String = ACTION_PROMPT_LABELS[key]?.let { "$key $it" } ?: key
 }

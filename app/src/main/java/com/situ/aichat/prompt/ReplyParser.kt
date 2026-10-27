@@ -22,14 +22,31 @@ object ReplyParser {
 
     // MARK: - 缓存正则
 
+    /** 情绪标签。体检 F1（2026-09-29）：容忍模型写歪的空格与全角冒号（`[ mood:😊 | green | 安心 ]`），标准写法解析结果不变。 */
     private val moodRegex =
-        Regex("""\[(?:mood|情绪):([^|\]\n]{1,16})\|([a-zA-Z]+)\|([^\]\n]{1,40})\]""")
+        Regex("""\[\s*(?:mood|情绪)\s*[:：]\s*([^|\]\n]{1,16}?)\s*\|\s*([a-zA-Z]+)\s*\|\s*([^\]\n]{1,40}?)\s*\]""")
+
+    /**
+     * 体检 F1：模型漏写方括号、单独成行的情绪标签（`mood:🥺|yellow|有点担心`）——App 只认方括号时它会原样变成一个气泡。
+     * 只认**整行**且颜色限 green/yellow/red，句中出现的「mood:」不碰。
+     */
+    private val bareMoodLineRegex = Regex(
+        """^[ \t]*(?:mood|情绪)[ \t]*[:：][ \t]*([^|\n]{1,16}?)[ \t]*\|[ \t]*(green|yellow|red)[ \t]*\|[ \t]*([^|\n]{1,40}?)[ \t]*$""",
+        setOf(RegexOption.MULTILINE, RegexOption.IGNORE_CASE),
+    )
 
     private val petSpeechRegex = Regex("""\[PET:(.+?)\]""")
 
     /** 通用内部标签（始终清理）。 */
     private val internalTagRegexes: List<Regex> = listOf(
-        Regex("""\[(?:mood|情绪):[^\]]+\]"""),
+        Regex("""\[\s*(?:mood|情绪)\s*[:：][^\]]*\]"""),
+        bareMoodLineRegex,
+        // 体检 F1：孤立的「（mood）」——模型想写情绪标签却只写了个名字。
+        Regex("""[（(]\s*mood\s*[）)]""", RegexOption.IGNORE_CASE),
+        // 体检 F2：模型编出来的系统标记（假语音条 / 假回执 / 纯数字方括号），任何模式都不是合法输出。
+        Regex("""\[\s*(?:时长|语音)\s*[:：]?\s*\d+(?:\.\d+)?\s*(?:秒|s|S|″|")\s*\]"""),
+        Regex("""\[\s*结果\s*[:：][^\]\n]{0,20}\]"""),
+        Regex("""\[\s*\d+(?:\.\d+)?\s*\]"""),
         Regex("""\[\d{4}(?:年|[-/])\d{1,2}(?:月|[-/])\d{1,2}(?:日)?\s*\d{1,2}:\d{2}\]"""),
         Regex("""\[CALENDAR_ACTION\][\s\S]*?\[/CALENDAR_ACTION\]"""),
         Regex("""<(?:\s*\|?\s*)?(?:/\s*\|?\s*)?DSML\s*\|?\s*[^>]*>"""),
@@ -134,7 +151,10 @@ object ReplyParser {
         preserveOfflineTags: Boolean = false,
         preserveMiniMaxVoiceTags: Boolean = false,
     ): MoodResult {
-        val matches = moodRegex.findAll(response).toList()
+        // 方括号版与整行无括号版一起按出现位置排，仍取最后一个（体检 F1）。
+        val matches = (moodRegex.findAll(response) + bareMoodLineRegex.findAll(response))
+            .sortedBy { it.range.first }
+            .toList()
 
         var latestEmoji = ""
         var latestDesc = ""
@@ -148,7 +168,7 @@ object ReplyParser {
             latestColor = normalizeMoodColor(colorStr)
         }
 
-        val cleanText = moodRegex.replace(response, "").trim()
+        val cleanText = bareMoodLineRegex.replace(moodRegex.replace(response, ""), "").trim()
         val sanitizedText = stripInternalAssistantTags(cleanText, preserveOfflineTags, preserveMiniMaxVoiceTags)
 
         return if (latestDesc.isEmpty()) {
@@ -349,7 +369,7 @@ object ReplyParser {
                 if (isSystemDirectiveLine(trimmed)) return@mapNotNull null
                 if (MessageSplitter.isMetaLine(trimmed)) return@mapNotNull null
                 if (MessageSplitter.isQuoteOnlyLine(trimmed)) return@mapNotNull null
-                trimmed
+                unwrapWholeLineNarration(trimmed)
             }
         }
 
@@ -368,6 +388,42 @@ object ReplyParser {
 
         sanitized = collapseExcessiveRepetition(sanitized)
         return sanitized
+    }
+
+    /**
+     * 体检 F3（2026-09-29）：纯文字聊天里整行被一对括号包住的旁白 / 心声（`[现在整屏代码我一个字都看不进去了]`、
+     * `（先吃面，不急着答）`）→ 去掉括号、保留原话，不丢字。只动「整行、括号里 ≥5 个汉字」的：
+     * 微信表情码 `[捂脸]`、`（小声）` 这类短的不动；方括号里以 ASCII 字母 / `#` / `_` 开头的是 App 自己的标签
+     * （`[sticker:…]`、`[#E1]`…），以「系统记录」开头的是历史留痕，一律不动。仅非线下路径调用。
+     */
+    internal fun unwrapWholeLineNarration(line: String): String {
+        for ((open, close) in wholeLineBracketPairs) {
+            if (line.length < 2 || !line.startsWith(open) || !line.endsWith(close)) continue
+            val inner = line.substring(1, line.length - 1)
+            if (inner.contains(open) || inner.contains(close)) return line
+            val body = inner.trim()
+            if (open == '[') {
+                val first = body.firstOrNull() ?: return line
+                if (first in 'a'..'z' || first in 'A'..'Z' || first == '#' || first == '_') return line
+                if (body.startsWith("系统记录")) return line
+            }
+            return if (hanCount(body) >= WHOLE_LINE_NARRATION_MIN_HAN) body else line
+        }
+        return line
+    }
+
+    private val wholeLineBracketPairs = listOf('[' to ']', '（' to '）', '(' to ')')
+    private const val WHOLE_LINE_NARRATION_MIN_HAN = 5
+
+    private fun hanCount(text: String): Int {
+        var count = 0
+        var i = 0
+        while (i < text.length) {
+            val cp = text.codePointAt(i)
+            if (Character.UnicodeScript.of(cp) == Character.UnicodeScript.HAN) count++
+            i += Character.charCount(cp)
+        }
+        return count
     }
 
     /** 表达性极简标点（合法极简回复的字符；区别于纯引号/括号垃圾）。均属 [MessageSplitter] 标点引号集的子集。 */

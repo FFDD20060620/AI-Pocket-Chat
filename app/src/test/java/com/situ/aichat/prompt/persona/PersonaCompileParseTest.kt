@@ -133,6 +133,41 @@ class PersonaCompileParseTest {
         }
     }
 
+    // 体检小毛病修复 F5a（2026-09-29）：算子两端同样带中文标签——只给编号时体检三个角色的算子全空。
+    @Test
+    fun compilePrompt_listsOperatorKeysWithChineseLabels() {
+        val (systemPrompt, _) = service.buildCompilePrompt(input())
+        assertTrue(systemPrompt.contains("c04 想躲的时候"))
+        assertTrue(systemPrompt.contains("c12 关系刚有进展的时候"))
+        assertTrue(systemPrompt.contains("a05 嘴上否认，行动上在意"))
+        assertTrue(systemPrompt.contains("a10 说反话"))
+        for (key in PersonaVocab.CONDITIONS.keys) {
+            assertTrue("$key 未带标签出现", systemPrompt.contains(PersonaVocab.conditionPromptLine(key)))
+        }
+        for (key in PersonaVocab.ACTIONS.keys) {
+            assertTrue("$key 未带标签出现", systemPrompt.contains(PersonaVocab.actionPromptLine(key)))
+        }
+        // 动作标签自带逗号，动作之间用「；」连接，否则「a01 不直说，绕着表达、a02 …」读不出边界。
+        assertTrue(systemPrompt.contains("a01 不直说，绕着表达；a02 转移话题"))
+        assertTrue(systemPrompt.contains("条件和动作要搭得上、不自相矛盾（例如「想躲的时候 → 更想找人说话」就说不通）。"))
+        // §7.1 定稿 D（真模型对照：人设笼统时不再凑人人都会的反应，人设写明的一条不漏）。
+        assertTrue(systemPrompt.contains("只写人设里读得出来的反应：人设明写了的都写上；人设没写、只是普通人大都会这样的（比如有事想分享的时候更想找人说话），不要自己补。读不出来就给空数组——宁缺毋滥。"))
+    }
+
+    // 体检小毛病修复 F5b：编译提示词不再默认角色是「她」，专属敏感点 label 不许带人称（体检实录「认真试玩她的游戏」给男角色）。
+    @Test
+    fun compilePrompt_isGenderNeutral_andForbidsPronounsInCustomLabels() {
+        val (systemPrompt, _) = service.buildCompilePrompt(input())
+        assertTrue(systemPrompt.contains("## gains：TA 对什么事格外敏感"))
+        assertTrue(systemPrompt.contains("## operators：TA 的固定反应"))
+        for (old in listOf("她对什么事", "她却无所谓", "说她对什么都敏感", "她的固定反应")) {
+            assertTrue("指角色的「她」应已改成 TA：$old", !systemPrompt.contains(old))
+        }
+        assertTrue(
+            systemPrompt.contains("label 里不要写「她」「他」「你」「我」这类人称：说角色自己就写「自己」，说对方就写「对方」（例：「自己的作品被认真对待」）。"),
+        )
+    }
+
     // MARK: - T1-2 anchors
 
     @Test

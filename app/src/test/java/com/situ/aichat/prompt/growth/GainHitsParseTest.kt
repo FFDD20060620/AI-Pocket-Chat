@@ -56,15 +56,17 @@ class GainHitsParseTest {
         assertTrue(p.contains("\"gain_hits\": [\"g04\", \"g13\"],"))
         assertTrue(p.contains("\"custom_hits\": [{\"label\": \"怕黑\", \"tone\": \"neg\"}],"))
         assertTrue(p.contains("### 敏感点命中规则"))
-        assertTrue(p.contains("- 下面是她可能在意的事。**这段对话里确实发生过的**才算命中，没发生的不要写；一次对话通常命中 0~3 项"))
-        assertTrue(p.contains("- custom_hits 只能写上面列出的专属项，label 原文照抄；tone 写 pos（让她舒服的）或 neg（让她难受的）"))
+        assertTrue(p.contains("- 下面是 TA 可能在意的事。**这段对话里确实发生过的**才算命中，没发生的不要写；一次对话通常命中 0~3 项"))
+        assertTrue(p.contains("- custom_hits 只能写上面列出的专属项，label 原文照抄；tone 写 pos（让 TA 舒服的）或 neg（让 TA 难受的）"))
+        // 2026-09-29 体检后续：分析提示词里「你」是分析师自己，角色一律叫 TA（男角色不再被叫「她」）。
+        assertFalse("敏感点段不再写死「她」", p.substringAfter("### 敏感点命中规则").substringBefore("### 兴趣变化规则").contains("她"))
         for (key in PersonaVocab.GAIN_KEYS) assertTrue("缺 $key 行", p.contains("\n- ${PersonaVocab.gainPromptLine(key)}\n"))
         assertTrue(p.contains("\n- g13 吵架 · 被凶\n"))
         // 段落顺序：关系规则 → 敏感点 → 兴趣规则；且 trimIndent 真剥掉了模板缩进（段标题在行首）。
         assertTrue(p.indexOf("### 关系变化规则") < p.indexOf("### 敏感点命中规则"))
         assertTrue(p.indexOf("### 敏感点命中规则") < p.indexOf("### 兴趣变化规则"))
         assertTrue(p.contains("\n### 敏感点命中规则\n"))
-        assertFalse("无专属项时整行不出", p.contains("她的专属敏感点"))
+        assertFalse("无专属项时整行不出", p.contains("TA 的专属敏感点"))
         // 修缮卷 §3.6：删句 + 注意行改用段标题常量
         assertFalse("「正负都给得高」整句已删", p.contains("正负都给得高"))
         assertTrue(p.contains("- **关系变化要正负分开报**"))
@@ -99,10 +101,10 @@ class GainHitsParseTest {
     @Test
     fun prompt_listsCustomLabels_whenProvided() {
         val p = systemPrompt(listOf("怕黑", "被叫全名"))
-        assertTrue(p.contains("\n- 她的专属敏感点（原文照抄标签）：怕黑、被叫全名\n"))
+        assertTrue(p.contains("\n- TA 的专属敏感点（原文照抄标签）：怕黑、被叫全名\n"))
         // 专属项行紧跟 27 行之后、custom_hits 规则行之前
-        assertTrue(p.indexOf("- g27 被抛弃的信号") < p.indexOf("她的专属敏感点"))
-        assertTrue(p.indexOf("她的专属敏感点") < p.indexOf("- custom_hits 只能写"))
+        assertTrue(p.indexOf("- g27 被抛弃的信号") < p.indexOf("TA 的专属敏感点"))
+        assertTrue(p.indexOf("TA 的专属敏感点") < p.indexOf("- custom_hits 只能写"))
     }
 
     // MARK: - gain_hits

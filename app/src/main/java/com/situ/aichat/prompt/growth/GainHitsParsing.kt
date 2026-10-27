@@ -17,18 +17,18 @@ import kotlinx.serialization.json.contentOrNull
 // ⚠️ 修缮卷起本文件**已改**（不再是「只搬不改」）：`parseGainHits` 前缀归一 + 丢弃计数（D-13）、`parseCustomHits` tone 忽略大小写（🔵-3）。
 
 /**
- * 提示词「### 敏感点命中规则」段（卷三 §3.3 锁定逐字）：27 行 `- gNN 标签`（[PersonaVocab.gainPromptLine]）+ 专属项一行
+ * 提示词「### 敏感点命中规则」段（卷三 §3.3 锁定逐字；2026-09-29 体检后续：指角色的「她」改「TA」，男角色不再被叫她）：27 行 `- gNN 标签`（[PersonaVocab.gainPromptLine]）+ 专属项一行
  * （[customGainLabels] 空则整行不出）。在 `trimIndent()` **之后**替换进 [SENSITIVITY_SECTION_MARKER] 所在行——多行插值若直接放进
  * 原始字符串会把公共缩进算成 0，整段提示词的缩进都剥不掉。
  * ⚠️ 与 [parseGainHits] / [parseCustomHits] 是同一对生成/解析（图纸 §6.1）：改键名 / 值域必须同改，格式锁 = `GainHitsParseTest`。
  */
 internal fun buildSensitivitySection(customGainLabels: List<String>): String {
     val gainLines = PersonaVocab.GAIN_KEYS.joinToString("\n") { "- ${PersonaVocab.gainPromptLine(it)}" }
-    val customLine = if (customGainLabels.isEmpty()) "" else "\n- 她的专属敏感点（原文照抄标签）：${customGainLabels.joinToString("、")}"
+    val customLine = if (customGainLabels.isEmpty()) "" else "\n- TA 的专属敏感点（原文照抄标签）：${customGainLabels.joinToString("、")}"
     return "### 敏感点命中规则\n" +
-        "- 下面是她可能在意的事。**这段对话里确实发生过的**才算命中，没发生的不要写；一次对话通常命中 0~3 项\n" +
+        "- 下面是 TA 可能在意的事。**这段对话里确实发生过的**才算命中，没发生的不要写；一次对话通常命中 0~3 项\n" +
         gainLines + customLine + "\n" +
-        "- custom_hits 只能写上面列出的专属项，label 原文照抄；tone 写 pos（让她舒服的）或 neg（让她难受的）"
+        "- custom_hits 只能写上面列出的专属项，label 原文照抄；tone 写 pos（让 TA 舒服的）或 neg（让 TA 难受的）"
 }
 
 /** [parseGainHits] 的产物：归一后 ∈ GAIN_KEYS 的命中（去重、截帽）+ 认不出的项数（上观测行·修缮卷 🔵-1）。 */

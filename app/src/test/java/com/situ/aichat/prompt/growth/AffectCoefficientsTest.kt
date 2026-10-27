@@ -93,4 +93,21 @@ class AffectCoefficientsTest {
         assertEquals("g13 吵架 · 被凶", PersonaVocab.gainPromptLine("g13"))
         assertEquals("g01 被关心问候", PersonaVocab.gainPromptLine("g01"))
     }
+
+    /** 体检小毛病修复 F5a（2026-09-29）：算子两端的提示词标签与 zh 资源同源双写的看门。 */
+    @Test
+    fun operatorPromptLabels_matchZhResourcesVerbatim() {
+        val zh = zhContext()
+        assertEquals(12, PersonaVocab.CONDITION_PROMPT_LABELS.size)
+        assertEquals(10, PersonaVocab.ACTION_PROMPT_LABELS.size)
+        for ((key, res) in PersonaVocab.CONDITIONS) {
+            assertEquals("$key 条件提示词标签与 zh 资源不同源", zh.getString(res), PersonaVocab.CONDITION_PROMPT_LABELS[key])
+        }
+        for ((key, res) in PersonaVocab.ACTIONS) {
+            assertEquals("$key 动作提示词标签与 zh 资源不同源", zh.getString(res), PersonaVocab.ACTION_PROMPT_LABELS[key])
+        }
+        assertEquals("c04 想躲的时候", PersonaVocab.conditionPromptLine("c04"))
+        assertEquals("a05 嘴上否认，行动上在意", PersonaVocab.actionPromptLine("a05"))
+        assertEquals("未知 key 只回 key 本身", "c99", PersonaVocab.conditionPromptLine("c99"))
+    }
 }

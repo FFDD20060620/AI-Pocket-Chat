@@ -1,5 +1,6 @@
 package com.situ.aichat.ui.liuli.chat
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -55,6 +56,14 @@ internal object LiuliChatGeometry {
     /** 列表顶留白（反转列表下 = 视觉顶部的 contentPadding.top）。 */
     fun listTopPadding(statusBarTop: Dp, hasWorldPill: Boolean): Dp =
         chromeBottom(statusBarTop, hasWorldPill) + listTopGap
+
+    /**
+     * 见面剧场（共用的 `OfflineModeView`）要让出的浮件 chrome：顶 = 顶栏底（剧场里世界胶囊恒不显示，取常量
+     * false——用变量会在退场幕布期跳一个胶囊高）；底 = 输入区**实测高** + 导航栏（同 [listBottomPadding] 的
+     * 入参口径，剧场自己的 20dp 呼吸由它另加）。漏传 = 末条内容压在输入区下（2026-09-29 真机截图）。
+     */
+    fun offlineTheaterChromeInsets(statusBarTop: Dp, inputOverlayHeight: Dp, navBarBottom: Dp): PaddingValues =
+        PaddingValues(top = chromeBottom(statusBarTop, hasWorldPill = false), bottom = inputOverlayHeight + navBarBottom)
 
     /** 日期胶囊浮现位置（自列表区顶起）。 */
     fun datePillOffset(statusBarTop: Dp, hasWorldPill: Boolean): Dp =

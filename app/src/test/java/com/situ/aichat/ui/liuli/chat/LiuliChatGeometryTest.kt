@@ -57,6 +57,16 @@ class LiuliChatGeometryTest {
         assertEquals(68.dp + 60.dp, LiuliChatGeometry.listBottomPadding(grown))
     }
 
+    @Test fun offlineTheaterChromeInsets_clearTopBarAndMeasuredInputPlusNavBar() {
+        // 见面剧场（2026-09-29 真机截图：末条压在输入区下）：顶让顶栏（剧场里无世界胶囊）= 状态栏 + 6 + 44；
+        // 底让输入区实测高 + 导航栏（剧场自己的 20dp 呼吸不在这里）。输入区撑高 60 → 底占位同量长高。
+        val navBar = 24.dp
+        val input = 44.dp + 12.dp + 60.dp
+        val insets = LiuliChatGeometry.offlineTheaterChromeInsets(statusBar, input, navBar)
+        assertEquals(statusBar + 6.dp + 44.dp, insets.calculateTopPadding())
+        assertEquals(44.dp + 12.dp + 60.dp + 24.dp, insets.calculateBottomPadding())
+    }
+
     @Test fun inputPieces_matchLockedValues() {
         assertEquals(10.dp, LiuliChatGeometry.inputSide)
         assertEquals(12.dp, LiuliChatGeometry.inputBottom)

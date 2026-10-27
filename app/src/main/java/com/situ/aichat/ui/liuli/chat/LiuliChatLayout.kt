@@ -261,6 +261,7 @@ internal fun LiuliChatLayout(
                                     onEndMeeting = { viewModel.exitOfflineMode() },
                                     onContinueMeeting = { viewModel.continueOfflineMeeting(it) },
                                     modifier = Modifier.fillMaxSize(),
+                                    chromeInsets = LiuliChatGeometry.offlineTheaterChromeInsets(statusBarTop, inputOverlayHeight, navBarBottom),
                                 )
                             } else if (messagesLoaded && messages.isEmpty() && typingSlot == null) {
                                 LiuliEmptyHint(
