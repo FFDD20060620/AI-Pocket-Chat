@@ -23,6 +23,7 @@
 
 ### 构建与运行
 
+[快速修改 HTTP 限制](https://github.com/FFDD20060620/AI-Pocket-Chat/blob/main/app/src/main/java/com/situ/aichat/data/repository/ApiConfigRepository.kt)
 1. 安装最新稳定版 [Android Studio](https://developer.android.com/studio)（自带 JDK，无需单独安装）。
 2. 克隆本仓库，用 Android Studio 打开项目根目录（首次打开会自动生成 `local.properties` 指向你的 SDK）。
 3. 连接设备或启动模拟器，点 **Run ▶** 即可。
