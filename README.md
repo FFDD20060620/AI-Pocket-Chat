@@ -1,4 +1,4 @@
-# AI Pocket Chat
+# AI Pocket Chat（本项目 Fork 自 Marlon0066/AI-Pocket-Chat）
 
 <a href="https://github.com/DasterProkio/awesome-ai-companion/blob/main/README.zh-CN.md"><img src="./assets/featured-in-awesome-ai-companion-zh-CN.png" alt="已收录于人机恋开源项目大全" height="24"></a> <a href="https://github.com/DasterProkio/awesome-ai-companion"><img src="./assets/featured-in-awesome-ai-companion.png" alt="Featured in Awesome AI Companion" height="24"></a>
 
@@ -24,6 +24,7 @@
 ### 构建与运行
 
 [快速修改 HTTP 限制](https://github.com/FFDD20060620/AI-Pocket-Chat/blob/main/app/src/main/java/com/situ/aichat/data/repository/ApiConfigRepository.kt)
+（已修改为能使用GitHub Actions 直接打包）
 1. 安装最新稳定版 [Android Studio](https://developer.android.com/studio)（自带 JDK，无需单独安装）。
 2. 克隆本仓库，用 Android Studio 打开项目根目录（首次打开会自动生成 `local.properties` 指向你的 SDK）。
 3. 连接设备或启动模拟器，点 **Run ▶** 即可。
