@@ -4,6 +4,10 @@ import com.situ.aichat.R
 import com.situ.aichat.data.model.currentAge
 import com.situ.aichat.openloop.OpenLoopScanService
 import com.situ.aichat.promise.PromiseInjectionRenderer
+import com.situ.aichat.prompt.style.LengthTone
+import com.situ.aichat.prompt.style.LogicTone
+import com.situ.aichat.prompt.style.PunctuationTone
+import com.situ.aichat.prompt.style.ToneRoll
 import com.situ.aichat.prompt.timesense.SpecialDays
 import com.situ.aichat.prompt.timesense.TimeSenseLines
 import java.time.Instant
@@ -317,6 +321,54 @@ internal fun buildQualityControlContent(s: PromptStrings): String =
         s.s(R.string.pb_quality_l2),
         s.s(R.string.pb_quality_l3),
         s.s(R.string.pb_quality_l4),
+    ).joinToString("\n")
+
+/**
+ * 「说话口气」模块（活人感二期 B 件·2026-11-03）：去 AI 味的正面写法。
+ * 刻意与 [buildResponseStyleContent] 分工：那边管「短」，这里管「像人打字」——标点、断句、允许不完美、不总结。
+ * 结尾给三组极短示例（few-shot 比形容词管用），全部走资源串，方便用户自己改。
+ */
+internal fun buildVoiceRulesContent(s: PromptStrings): String =
+    listOf(
+        s.s(R.string.pb_voice_title),
+        s.s(R.string.pb_voice_l1),
+        s.s(R.string.pb_voice_l2),
+        s.s(R.string.pb_voice_l3),
+        s.s(R.string.pb_voice_l4),
+        s.s(R.string.pb_voice_l5),
+        s.s(R.string.pb_voice_l6),
+        s.s(R.string.pb_voice_l7),
+        s.s(R.string.pb_voice_examples),
+    ).joinToString("\n")
+
+/**
+ * 三旋钮的文案（活人感二期 B 件·方案 §5.9）：一行标题 + 三行（标点 / 长短 / 逻辑）。
+ * 只描述「这一条」，并明确「不用念出来」，避免模型把规则本身说出来。
+ */
+internal fun buildToneRollContent(s: PromptStrings, roll: ToneRoll): String =
+    listOf(
+        s.s(R.string.pb_tone_header),
+        s.s(
+            when (roll.punctuation) {
+                PunctuationTone.CASUAL -> R.string.pb_tone_punct_casual
+                PunctuationTone.NORMAL -> R.string.pb_tone_punct_normal
+            },
+        ),
+        s.s(
+            when (roll.length) {
+                LengthTone.ONE_LINE -> R.string.pb_tone_len_1
+                LengthTone.TWO_THREE -> R.string.pb_tone_len_2
+                LengthTone.FOUR_FIVE -> R.string.pb_tone_len_3
+                LengthTone.OPEN -> R.string.pb_tone_len_4
+            },
+        ),
+        s.s(
+            when (roll.logic) {
+                LogicTone.TIGHT -> R.string.pb_tone_logic_tight
+                LogicTone.LOOSE -> R.string.pb_tone_logic_loose
+                LogicTone.FREE -> R.string.pb_tone_logic_free
+            },
+        ),
     ).joinToString("\n")
 
 internal fun buildMoodExpressionContent(s: PromptStrings): String =

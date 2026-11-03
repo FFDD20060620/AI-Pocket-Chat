@@ -101,6 +101,10 @@ class SettingsRepository @Inject constructor(
             emotionAnimationEnabled = p[KEY_EMOTION_ANIMATION] ?: true,
             // 自然短句口吻（活人感一期 P1）——PromptBuilder 回复风格块消费；缺值 → 默认开。
             textingToneEnabled = p[KEY_TEXTING_TONE] ?: true,
+            antiSlopPenaltyEnabled = p[KEY_ANTI_SLOP_PENALTY] ?: false,
+            antiSlopPenaltyIntensity = p[KEY_ANTI_SLOP_PENALTY_INTENSITY] ?: "light",
+            humanTypingEnabled = p[KEY_HUMAN_TYPING] ?: false,
+            humanTypingIntensity = p[KEY_HUMAN_TYPING_INTENSITY] ?: "light",
             cacheSaverEnabled = p[KEY_CACHE_SAVER] ?: false,
             // 主动消息通知（P6.1c）——这两项需真正持久化并被调度器读取，故在此显式映射。
             notificationsEnabled = p[KEY_NOTIFICATIONS_ENABLED] ?: true,
@@ -275,6 +279,10 @@ class SettingsRepository @Inject constructor(
             p[KEY_RELATIONSHIP_AUTO_ADVANCE] = s.relationshipAutoAdvanceEnabled
             p[KEY_EMOTION_ANIMATION] = s.emotionAnimationEnabled
             p[KEY_TEXTING_TONE] = s.textingToneEnabled
+            p[KEY_ANTI_SLOP_PENALTY] = s.antiSlopPenaltyEnabled
+            p[KEY_ANTI_SLOP_PENALTY_INTENSITY] = s.antiSlopPenaltyIntensity
+            p[KEY_HUMAN_TYPING] = s.humanTypingEnabled
+            p[KEY_HUMAN_TYPING_INTENSITY] = s.humanTypingIntensity
             p[KEY_CACHE_SAVER] = s.cacheSaverEnabled
             p[KEY_NOTIFICATIONS_ENABLED] = s.notificationsEnabled
             p[KEY_ECONOMY_NOTIFICATION_TIER] = s.economyNotificationTier
@@ -383,6 +391,20 @@ class SettingsRepository @Inject constructor(
      * 一次性迁移（「我们的日子」卷二·2026-09-02·图纸 §3.2）：把老用户全局/角色模块里缺席或停在追加位的 ourDays 归位到
      * 「见面记忆」正后。[KEY_OUR_DAYS_MODULE_ORDER_MIGRATED] 守卫只跑一次；最坏情况解码失败=顺序不变不抛,仍置 flag。
      */
+    /** 一次性迁移（活人感二期 B 件·2026-11-03）：把「说话口气」模块归位到「防重复与质量」正后（用户手动挪过则零碰）。守卫只跑一次。 */
+    suspend fun migratePromptModuleVoiceOnce() {
+        dataStore.edit { p ->
+            if (p[KEY_VOICE_MODULE_ORDER_MIGRATED] == true) return@edit
+            val result = PromptModuleService.migratePromptModuleVoice(
+                globalJson = p[KEY_PROMPT_MODULES] ?: "",
+                characterJson = p[KEY_CHARACTER_PROMPT_MODULES] ?: "",
+            )
+            result?.first?.let { p[KEY_PROMPT_MODULES] = it }
+            result?.second?.let { p[KEY_CHARACTER_PROMPT_MODULES] = it }
+            p[KEY_VOICE_MODULE_ORDER_MIGRATED] = true
+        }
+    }
+
     suspend fun migratePromptModuleOurDaysOnce() {
         // 读-检-迁-写同一 edit 事务（原子·不占主线程·同 [migratePromptModuleTimeOrderOnce]）。
         dataStore.edit { p ->
@@ -679,6 +701,22 @@ class SettingsRepository @Inject constructor(
     suspend fun setTextingToneEnabled(enabled: Boolean) =
         dataStore.edit { it[KEY_TEXTING_TONE] = enabled }
 
+    /** 采样惩罚开关（活人感二期 A 件）：只作用于普通聊天，工具 / JSON / 推理模型由 LlmClient 自动跳过。 */
+    suspend fun setAntiSlopPenaltyEnabled(enabled: Boolean) =
+        dataStore.edit { it[KEY_ANTI_SLOP_PENALTY] = enabled }
+
+    /** 采样惩罚强度（"light" / "standard"）：非法值回落 light（与读映射一致）。 */
+    suspend fun setAntiSlopPenaltyIntensity(raw: String) =
+        dataStore.edit { it[KEY_ANTI_SLOP_PENALTY_INTENSITY] = if (raw == "standard") "standard" else "light" }
+
+    /** 像真人打字开关（活人感二期 B 件）：关 = 后缀区不再追加三旋钮，与旧请求逐字节一致。 */
+    suspend fun setHumanTypingEnabled(enabled: Boolean) =
+        dataStore.edit { it[KEY_HUMAN_TYPING] = enabled }
+
+    /** 像真人打字强度（"light" / "standard"）。 */
+    suspend fun setHumanTypingIntensity(raw: String) =
+        dataStore.edit { it[KEY_HUMAN_TYPING_INTENSITY] = if (raw == "standard") "standard" else "light" }
+
     /** 省钱模式开关（时间感知四期·图纸二）。 */
     suspend fun setCacheSaverEnabled(enabled: Boolean) = dataStore.edit { it[KEY_CACHE_SAVER] = enabled }
 
@@ -932,6 +970,11 @@ class SettingsRepository @Inject constructor(
         val KEY_NOTIF_QUIET_HOURS_END = intPreferencesKey("notif_quiet_hours_end")
         val KEY_EMOTION_ANIMATION = booleanPreferencesKey("emotion_animation_enabled")
         val KEY_TEXTING_TONE = booleanPreferencesKey("texting_tone_enabled")
+        val KEY_ANTI_SLOP_PENALTY = booleanPreferencesKey("anti_slop_penalty_enabled")
+        val KEY_ANTI_SLOP_PENALTY_INTENSITY = stringPreferencesKey("anti_slop_penalty_intensity")
+        val KEY_VOICE_MODULE_ORDER_MIGRATED = booleanPreferencesKey("voice_module_order_migrated_v1")
+        val KEY_HUMAN_TYPING = booleanPreferencesKey("human_typing_enabled")
+        val KEY_HUMAN_TYPING_INTENSITY = stringPreferencesKey("human_typing_intensity")
         val KEY_CACHE_SAVER = booleanPreferencesKey("cache_saver_enabled")
         val KEY_NOTIF_DISABLED_CHARS = stringSetPreferencesKey("notif_disabled_char_ids")
         val KEY_BUSY_MODE_ENABLED = booleanPreferencesKey("busy_mode_enabled")

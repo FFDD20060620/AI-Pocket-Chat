@@ -223,6 +223,7 @@ class AppViewModel @Inject constructor(
         viewModelScope.launch { runCatching { settingsRepository.migratePromptModuleSceneDefaultsOnce() } }
         // 我们的日子·卷二：老用户模块「我们的日子」一次性归位到「见面记忆」正后（图纸 §3.2）。
         viewModelScope.launch { runCatching { settingsRepository.migratePromptModuleOurDaysOnce() } }
+        viewModelScope.launch { runCatching { settingsRepository.migratePromptModuleVoiceOnce() } }
         // P12.6 D2：挂进程级前后台观察者（放在 init 末尾，使启动时的 ON_RESUME 重放在 scheduleBackgroundWork 之后触发
         // onAppForeground，时序与旧 AppRoot DisposableEffect 一致）。ProcessLifecycleOwner 是进程单例 → 须在 onCleared 移除防泄漏。
         ProcessLifecycleOwner.get().lifecycle.addObserver(processLifecycleObserver)

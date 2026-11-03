@@ -1,5 +1,7 @@
 package com.situ.aichat.prompt
 
+import com.situ.aichat.prompt.style.StyleRoller
+
 import com.situ.aichat.R
 import com.situ.aichat.data.model.AppSettings
 import com.situ.aichat.data.model.CharacterEconomicChatState
@@ -582,6 +584,12 @@ object PromptBuilder {
                     ),
                 )
             }
+            // 说话口气骰子（活人感二期 B 件·三旋钮，方案 §5.9）：每轮由代码掷一次，只影响这一条回复的标点/长短/逻辑。
+            // 放在后置区（历史之后）、守卫卡之前：离生成点近，但不抢「现在卡」的物理末位；关掉开关则整段不出现。
+            if (effectiveScene == PromptScene.ONLINE_CHAT && appSettings.humanTypingEnabled) {
+                val roll = StyleRoller.roll(character.uuid, System.nanoTime(), appSettings.humanTypingIntensity)
+                chatMessages.add(ChatMessageDto(role = ROLE_SYSTEM, content = buildToneRollContent(strings, roll)))
+            }
             // 等待期（Phase 9·§7：仅非线下）：有「已确认未来约定」时注入【待见约定】，让 AI 自然提起/期待，别生硬复述。
             // 段标题【待见约定】刻意避开 DirtyMessageDetector 保留的【见面 · 】【长期事实】【你今天完整的日程】。
             nextMeetingAppointment?.let { appt ->
@@ -906,6 +914,7 @@ object PromptBuilder {
         SystemModuleType.CHARACTER_ECONOMIC_STATE -> PromptMacros.ECONOMIC_STATE // M10 (P9.1a)
         SystemModuleType.CORE_RULES,
         SystemModuleType.SCENARIO,
+        SystemModuleType.VOICE_RULES,
         SystemModuleType.RESPONSE_STYLE,
         SystemModuleType.CHAT_FORMAT,
         SystemModuleType.QUALITY_CONTROL,
@@ -935,6 +944,7 @@ object PromptBuilder {
         SystemModuleType.CHAT_FORMAT -> buildChatFormatContent(strings)
         SystemModuleType.RESPONSE_STYLE -> buildResponseStyleContent(strings, textingTone)
         SystemModuleType.QUALITY_CONTROL -> buildQualityControlContent(strings)
+        SystemModuleType.VOICE_RULES -> buildVoiceRulesContent(strings)
         SystemModuleType.MOOD_EXPRESSION -> buildMoodExpressionContent(strings)
         SystemModuleType.GENERAL_INSTRUCTIONS -> buildGeneralInstructionsContent(strings)
         SystemModuleType.BUSY_REPLY_INSTRUCTION -> busyReplyTemplate()

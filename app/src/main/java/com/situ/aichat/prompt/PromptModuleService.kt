@@ -48,6 +48,7 @@ object PromptModuleService {
         SystemModuleType.CHARACTER_ECONOMIC_STATE to "10000001-0000-0000-0000-000000000014",
         SystemModuleType.BUSY_REPLY_INSTRUCTION to "10000001-0000-0000-0000-000000000015",
         SystemModuleType.OUR_DAYS to "10000001-0000-0000-0000-000000000017", // 「我们的日子」卷二（…016 已被 CURRENT_MOMENT 占）
+        SystemModuleType.VOICE_RULES to "10000001-0000-0000-0000-000000000018", // 说话口气（活人感二期 B 件）
     )
 
     private fun systemModuleUUID(type: SystemModuleType): String =
@@ -405,6 +406,65 @@ object PromptModuleService {
             )
         }
         return true
+    }
+
+    // MARK: - 说话口气归位迁移（活人感二期 B 件·2026-11-03）
+
+    /**
+     * 把 [SystemModuleType.VOICE_RULES] 归位到「防重复与质量」正后（新用户默认布局）。
+     *
+     * 判定同 [migrateOurDaysAfterMeetingMemory]：不存在 → 插入；存在但不在追加位（= 用户手挪过）→ 零碰；
+     * 已在正后 → false。幂等：迁后再跑必 false。
+     */
+    fun migrateVoiceRulesAfterQualityControl(modules: MutableList<PromptModule>): Boolean {
+        val type = SystemModuleType.VOICE_RULES
+        val qc = modules.firstOrNull { it.systemModuleType == SystemModuleType.QUALITY_CONTROL }
+        val vr = modules.indexOfFirst { it.systemModuleType == type }
+        if (vr >= 0) {
+            if (qc == null || modules[vr].sortOrder != modules.maxOf { it.sortOrder }) return false // 无锚点 / 不在追加位
+            if (modules[vr].sortOrder == qc.sortOrder + 1) return false // 已在正后
+        }
+        val target = if (qc == null) (modules.maxOfOrNull { it.sortOrder } ?: -1) + 1 else qc.sortOrder + 1
+        for (i in modules.indices) {
+            val m = modules[i]
+            if (i != vr && m.sortOrder >= target) modules[i] = m.copy(sortOrder = m.sortOrder + 1)
+        }
+        if (vr >= 0) {
+            modules[vr] = modules[vr].copy(sortOrder = target)
+        } else {
+            modules.add(
+                PromptModule(
+                    id = systemModuleUUID(type), name = type.displayName, content = "", sortOrder = target, isEnabled = true,
+                    isSystemGenerated = true, systemModuleType = type, position = type.defaultPosition, enabledScenes = type.defaultEnabledScenes,
+                ),
+            )
+        }
+        return true
+    }
+
+    /** 对全局 + 每个角色覆盖各自应用 [migrateVoiceRulesAfterQualityControl]；返回语义同 [migratePromptModuleTimeOrder]。 */
+    fun migratePromptModuleVoice(globalJson: String, characterJson: String): Pair<String?, String?>? {
+        val newGlobal: String? = globalJson
+            .takeIf { it.isNotEmpty() }
+            ?.let { decodeModules(it) }
+            ?.toMutableList()
+            ?.takeIf { migrateVoiceRulesAfterQualityControl(it) }
+            ?.let { encodeModules(it) }
+
+        var characterChanged = false
+        val dict = decodeCharacterDict(characterJson)
+        val newDict = dict.mapValues { (_, mods) ->
+            val mutable = mods.toMutableList()
+            if (migrateVoiceRulesAfterQualityControl(mutable)) {
+                characterChanged = true
+                mutable.toList()
+            } else {
+                mods
+            }
+        }
+        val newCharacter = if (characterChanged) encodeCharacterDict(newDict) else null
+
+        return if (newGlobal == null && newCharacter == null) null else newGlobal to newCharacter
     }
 
     /** 对全局 + 每个角色覆盖各自应用 [migrateOurDaysAfterMeetingMemory]；返回语义同 [migratePromptModuleTimeOrder]。 */

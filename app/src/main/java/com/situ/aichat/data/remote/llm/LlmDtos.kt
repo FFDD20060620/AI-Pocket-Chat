@@ -27,6 +27,9 @@ data class ChatRequestDto(
     @SerialName("response_format") val responseFormat: ResponseFormatDto? = null,
     @SerialName("tool_choice") val toolChoice: String? = null,
     @SerialName("stream_options") val streamOptions: StreamOptionsDto? = null,
+    /** 采样惩罚（活人感二期 A 件）：只由普通聊天路径填；工具 / JSON / 推理模型在 LlmClient 里自动置空。 */
+    @SerialName("presence_penalty") val presencePenalty: Double? = null,
+    @SerialName("frequency_penalty") val frequencyPenalty: Double? = null,
 )
 
 @Serializable(with = ChatMessageDtoSerializer::class)

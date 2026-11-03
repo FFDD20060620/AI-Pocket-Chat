@@ -38,6 +38,8 @@ import com.situ.aichat.data.remote.llm.DeepSeekReasoningPlaceholder
 import com.situ.aichat.data.remote.llm.LlmClient
 import com.situ.aichat.data.remote.llm.LlmRequestCapture
 import com.situ.aichat.data.remote.llm.StreamToken
+import com.situ.aichat.data.remote.llm.TonePenalty
+import com.situ.aichat.data.remote.llm.tonePenalty
 import com.situ.aichat.data.remote.llm.ToolCallAccumulator
 import com.situ.aichat.data.remote.llm.UsageDto
 import com.situ.aichat.diagnostics.ContextLogService
@@ -418,7 +420,7 @@ internal class AssistantTurnEngine(
                 val requestCapture = LlmRequestCapture() // 四期·图纸三：本次尝试实际发出的请求
                 result = try {
                     // 去媒体降级后强制不发工具（1:1 iOS buildFallbackMessages：toolCallingEnabled=false，纯文本回合）。
-                    withContext(requestCapture) { streamOneTurn(chatMessages, config, useToolCalling && !mediaStripped, canInitiateOffline, allowEndMeeting, convo.isInOfflineMode, settings.calendarIntegrationEnabled, settings.calendarActionConfirmation, sb, settings.sanitizedLlmTemperature, onUsage = { turnUsage = it }) {
+                    withContext(requestCapture) { streamOneTurn(chatMessages, config, useToolCalling && !mediaStripped, canInitiateOffline, allowEndMeeting, convo.isInOfflineMode, settings.calendarIntegrationEnabled, settings.calendarActionConfirmation, sb, settings.sanitizedLlmTemperature, onUsage = { turnUsage = it }, tonePenalty = settings.tonePenalty()) {
                         assembleMessages(false, withMedia = !mediaStripped)
                     } }
                 } catch (e: CancellationException) {
@@ -589,11 +591,13 @@ internal class AssistantTurnEngine(
         temperature: Double,
         // 批 D 上下文日志：末帧 usage 回调，穿到本轮所有内部 streamChat（tool/plain/fallback）。follow-up completion 不穿（= iOS）。
         onUsage: ((UsageDto) -> Unit)? = null,
+        /** 采样惩罚（活人感二期 A 件）：只穿到纯聊天的 streamChat；工具回合 / follow-up 不带（LlmClient 也会自动跳过）。 */
+        tonePenalty: TonePenalty? = null,
         buildFallback: () -> List<ChatMessageDto>,
     ): TurnStreamResult {
         sb.setLength(0)
         if (!useToolCalling) {
-            streamPlainContent(toolMessages, config, sb, temperature, onUsage)
+            streamPlainContent(toolMessages, config, sb, temperature, onUsage, tonePenalty)
             return TurnStreamResult(sb.toString(), emptyList(), emptyList(), false, toolInfo = LogToolInfo.marker())
         }
 
@@ -614,7 +618,7 @@ internal class AssistantTurnEngine(
         } catch (e: Exception) {
             // ① 工具调用流抛异常 → 降级纯文本模式重试 + 提示（1:1 iOS toolCallFailed 分支 + .toolCallFallback）。
             sb.setLength(0)
-            streamPlainContent(buildFallback(), config, sb, temperature, onUsage)
+            streamPlainContent(buildFallback(), config, sb, temperature, onUsage, tonePenalty)
             infoToastFlow.value = appContext.getString(R.string.tool_call_fallback_notice)
             return TurnStreamResult(
                 sb.toString(), emptyList(), emptyList(), false,
@@ -632,7 +636,7 @@ internal class AssistantTurnEngine(
             // ② 工具调用「全军覆没」（有失败、且一个可用动作/候选都没解出）→ 文本降级链路。
             //    部分成功不再走这里：留住已解析的、丢掉坏的那个（H2·治 #5 一坏毁整轮·坏调用已在 extractor 内跳过）。
             sb.setLength(0)
-            streamPlainContent(buildFallback(), config, sb, temperature, onUsage)
+            streamPlainContent(buildFallback(), config, sb, temperature, onUsage, tonePenalty)
             infoToastFlow.value = appContext.getString(R.string.tool_call_fallback_notice)
             return TurnStreamResult(
                 sb.toString(), emptyList(), emptyList(), false,
@@ -665,8 +669,13 @@ internal class AssistantTurnEngine(
         sb: StringBuilder,
         temperature: Double,
         onUsage: ((UsageDto) -> Unit)? = null,
+        tonePenalty: TonePenalty? = null,
     ) {
-        llmClient.streamChat(messages = messages, config = config, temperature = temperature, onUsage = onUsage, sessionKey = conversationUuid).collect { token ->
+        llmClient.streamChat(
+            messages = messages, config = config, temperature = temperature, onUsage = onUsage,
+            sessionKey = conversationUuid,
+            presencePenalty = tonePenalty?.presence, frequencyPenalty = tonePenalty?.frequency,
+        ).collect { token ->
             if (token is StreamToken.Content) sb.append(token.text)
         }
     }

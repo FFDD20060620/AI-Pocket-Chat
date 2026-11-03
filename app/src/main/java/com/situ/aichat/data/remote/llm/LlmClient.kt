@@ -64,8 +64,11 @@ class LlmClient(
         onSseLine: (() -> Unit)? = null,
         /** 会话标识（四期·图纸一 §3.2b·可选尾参默认 null 零波及）：非 null 时 OpenRouter / xAI 多带一个会话请求头，模型读到的内容一字不变。 */
         sessionKey: String? = null,
+        /** 采样惩罚（活人感二期 A 件·可选尾参默认 null 零波及）：结构化回合与推理模型由 [buildRequestJson] 自动置空。 */
+        presencePenalty: Double? = null,
+        frequencyPenalty: Double? = null,
     ): Flow<StreamToken> = flow {
-        val bodyJson = buildRequestJson(messages, config, stream = true, temperature, maxTokens, responseFormat, tools, capture = currentCoroutineContext()[LlmRequestCapture])
+        val bodyJson = buildRequestJson(messages, config, stream = true, temperature, maxTokens, responseFormat, tools, presencePenalty = presencePenalty, frequencyPenalty = frequencyPenalty, capture = currentCoroutineContext()[LlmRequestCapture])
         val client = http.get().newBuilder()
             .callTimeout(0, TimeUnit.SECONDS) // no overall cap; streams can be long
             .readTimeout(idleTimeoutSec, TimeUnit.SECONDS) // per-read idle guard
@@ -79,18 +82,25 @@ class LlmClient(
             connectWithRetry(client, config, bodyJson, sessionKey)
         } catch (e: LlmError.Http) {
             val sentTemperature = resolveEffectiveTemperature(temperature, config.providerType == ApiProviderType.MINIMAX, config.isThinkingModel)
-            when (firstCall400RetryPlan(e, maxTokens, sentTemperature)) {
+            // 只有真的发出去过才值得为它重试：结构化回合 / 推理模型本来就不带 penalty（否则重发与首调一字不差，白烧一次）。
+            val sentPenalty = (presencePenalty != null || frequencyPenalty != null) &&
+                tools.isNullOrEmpty() && responseFormat == null && !config.isThinkingModel
+            when (firstCall400RetryPlan(e, maxTokens, sentTemperature, sentPenalty)) {
                 FirstCall400RetryPlan.SWAP_PARAM_NAME -> {
                     Log.w(TAG, "流式首调 max_tokens 参数名被拒（推理系方言），换 max_completion_tokens 同值重试一次")
-                    connectWithRetry(client, config, buildRequestJson(messages, config, stream = true, temperature, maxTokens, responseFormat, tools, useMaxCompletionTokens = true), sessionKey)
+                    connectWithRetry(client, config, buildRequestJson(messages, config, stream = true, temperature, maxTokens, responseFormat, tools, useMaxCompletionTokens = true, presencePenalty = presencePenalty, frequencyPenalty = frequencyPenalty), sessionKey)
                 }
                 FirstCall400RetryPlan.CLAMP -> {
                     Log.w(TAG, "流式首调 maxTokens=$maxTokens 被 400 拒（超服务商硬顶），clamp $SAFE_RETRY_MAX_TOKENS 重试一次")
-                    connectWithRetry(client, config, buildRequestJson(messages, config, stream = true, temperature, SAFE_RETRY_MAX_TOKENS, responseFormat, tools), sessionKey)
+                    connectWithRetry(client, config, buildRequestJson(messages, config, stream = true, temperature, SAFE_RETRY_MAX_TOKENS, responseFormat, tools, presencePenalty = presencePenalty, frequencyPenalty = frequencyPenalty), sessionKey)
                 }
                 FirstCall400RetryPlan.DROP_TEMPERATURE -> {
                     Log.w(TAG, "流式首调 temperature 被 400 拒（方言不认），去温度重试一次")
-                    connectWithRetry(client, config, buildRequestJson(messages, config, stream = true, temperature, maxTokens, responseFormat, tools, dropTemperature = true), sessionKey)
+                    connectWithRetry(client, config, buildRequestJson(messages, config, stream = true, temperature, maxTokens, responseFormat, tools, dropTemperature = true, presencePenalty = presencePenalty, frequencyPenalty = frequencyPenalty), sessionKey)
+                }
+                FirstCall400RetryPlan.DROP_PENALTIES -> {
+                    Log.w(TAG, "流式首调 presence/frequency_penalty 被 400 拒（方言不认），去惩罚重试一次")
+                    connectWithRetry(client, config, buildRequestJson(messages, config, stream = true, temperature, maxTokens, responseFormat, tools, presencePenalty = presencePenalty, frequencyPenalty = frequencyPenalty, dropPenalties = true), sessionKey)
                 }
                 FirstCall400RetryPlan.NONE -> throw e
             }
@@ -381,6 +391,11 @@ class LlmClient(
         dropTemperature: Boolean = false,
         /** 上下文日志「实际发出去的样子」捕获（四期·图纸三 §3.2）：只在两个首发点传，只读不改请求。 */
         capture: LlmRequestCapture? = null,
+        /** 普通聊天采样惩罚（活人感二期 A 件）：null = 不发。结构化回合 / 推理模型在此统一置空。 */
+        presencePenalty: Double? = null,
+        frequencyPenalty: Double? = null,
+        /** true = 方言拒收惩罚后的自动重试：本发彻底不带两个 penalty（同 [dropTemperature] 套路）。 */
+        dropPenalties: Boolean = false,
     ): String {
         val payload = ReasoningPayloadMapper.payload(config)
         val effectiveResponseFormat = if (config.providerType.supportsResponseFormat) responseFormat else null
@@ -388,6 +403,10 @@ class LlmClient(
         // MiniMax: map temperature 0..2 -> (0, 1.0]; strip reasoning_content (DeepSeek-only field).
         val isMiniMax = config.providerType == ApiProviderType.MINIMAX
         val effectiveTemperature = if (dropTemperature) null else resolveEffectiveTemperature(temperature, isMiniMax, config.isThinkingModel)
+        // A 件护栏（方案 §16.2）：工具回合 / JSON 模式 / 推理模型一律不发惩罚——penalty 压高频符号会让工具 JSON 缺括号。
+        val structuredTurn = !tools.isNullOrEmpty() || effectiveResponseFormat != null || config.isThinkingModel
+        val effectivePresencePenalty = if (dropPenalties || structuredTurn) null else presencePenalty
+        val effectiveFrequencyPenalty = if (dropPenalties || structuredTurn) null else frequencyPenalty
         // 非白名单服务商发送前改写（四期·图纸一 §3.2·唯一调用点·纯函数幂等）；在 MiniMax 剥离之前。
         val sendMessages = ProviderMessageAdapter.forSend(messages, config)
         val effectiveMessages = if (isMiniMax) {
@@ -417,6 +436,8 @@ class LlmClient(
             thinking = payload.thinking,
             responseFormat = effectiveResponseFormat,
             streamOptions = streamOptions,
+            presencePenalty = effectivePresencePenalty,
+            frequencyPenalty = effectiveFrequencyPenalty,
         )
         capture?.offer(
             request,
@@ -523,6 +544,11 @@ class LlmClient(
             error.statusCode == 400 && sentTemperature != null &&
                 error.bodySummary?.contains("temperature", ignoreCase = true) == true
 
+        /** penalty 方言拒收（400 且报文点名 presence_penalty / frequency_penalty）。 */
+        internal fun isPenaltyRejection(error: LlmError.Http, sentPenalty: Boolean): Boolean =
+            error.statusCode == 400 && sentPenalty &&
+                error.bodySummary?.contains("penalty", ignoreCase = true) == true
+
         /**
          * 首调 400 的重试分类。SWAP 优先于 CLAMP：参数名拒收（报文点名 unsupported /
          * max_completion_tokens）的正解是换名保值——clamp 换值不换名注定二连 400。
@@ -534,11 +560,14 @@ class LlmClient(
             error: LlmError.Http,
             requestedMaxTokens: Int?,
             sentTemperature: Double?,
+            sentPenalty: Boolean = false,
         ): FirstCall400RetryPlan = when {
             requestedMaxTokens != null &&
                 ProbeMaxTokensDialect.isParamRejection(error.statusCode, error.bodySummary) -> FirstCall400RetryPlan.SWAP_PARAM_NAME
             isMaxTokensRejection(error, requestedMaxTokens) -> FirstCall400RetryPlan.CLAMP
             isTemperatureRejection(error, sentTemperature) -> FirstCall400RetryPlan.DROP_TEMPERATURE
+            // 惩罚殿后：方言不认采样参数时，先去上限、再去温度，都没有才轮到它。
+            isPenaltyRejection(error, sentPenalty) -> FirstCall400RetryPlan.DROP_PENALTIES
             else -> FirstCall400RetryPlan.NONE
         }
 
@@ -560,4 +589,4 @@ class LlmClient(
 }
 
 /** 首调 400 的重试分类：换名（推理系参数方言）> 降额（超服务商硬顶）> 去温度（方言不认 temperature）> 不重试。纯函数便于 T1 真值表。 */
-internal enum class FirstCall400RetryPlan { SWAP_PARAM_NAME, CLAMP, DROP_TEMPERATURE, NONE }
+internal enum class FirstCall400RetryPlan { SWAP_PARAM_NAME, CLAMP, DROP_TEMPERATURE, DROP_PENALTIES, NONE }

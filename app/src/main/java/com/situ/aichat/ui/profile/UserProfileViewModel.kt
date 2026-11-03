@@ -75,4 +75,30 @@ class UserProfileViewModel @Inject constructor(
     fun setTextingTone(enabled: Boolean) {
         viewModelScope.launch { settings.setTextingToneEnabled(enabled) }
     }
+
+    /**
+     * 采样惩罚开关（活人感二期 A 件）：开 → 普通聊天请求带 presence/frequency penalty。
+     * 初值 false 与 [SettingsRepository] 默认一致；工具回合 / JSON / 推理模型由 LlmClient 自动跳过。
+     */
+    val antiSlopPenaltyEnabled: StateFlow<Boolean> =
+        settings.appSettings
+            .map { it.antiSlopPenaltyEnabled }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setAntiSlopPenalty(enabled: Boolean) {
+        viewModelScope.launch { settings.setAntiSlopPenaltyEnabled(enabled) }
+    }
+
+    /**
+     * 像真人打字（活人感二期 B 件·三旋钮）：开 → 每轮后缀区追加「这一条的标点/长短/逻辑」。
+     * 初值 false 与 [SettingsRepository] 默认一致（关掉即逐字节回到旧请求）。
+     */
+    val humanTypingEnabled: StateFlow<Boolean> =
+        settings.appSettings
+            .map { it.humanTypingEnabled }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setHumanTyping(enabled: Boolean) {
+        viewModelScope.launch { settings.setHumanTypingEnabled(enabled) }
+    }
 }

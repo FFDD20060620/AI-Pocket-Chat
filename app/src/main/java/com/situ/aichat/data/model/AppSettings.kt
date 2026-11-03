@@ -198,6 +198,14 @@ data class AppSettings(
     // 口吻（活人感一期 P1）
     /** 自然短句口吻：开 → 回复风格块追加「像手机打字那样说话」全局规则（pb_style_l3）；关 → 风格块与旧值逐字节一致。默认开，书面风角色可关。 */
     val textingToneEnabled: Boolean = true,
+    /** 采样惩罚（活人感二期 A 件·2026-11-03）：开 → 普通聊天请求带 presence/frequency penalty，压复读与套话。默认关——少数服务商不认这两个参数（已做 400 自愈）。 */
+    val antiSlopPenaltyEnabled: Boolean = false,
+    /** 采样惩罚强度 raw："light"（默认·温和 0.15/0.20）/ "standard"（标准 0.20/0.30）。 */
+    val antiSlopPenaltyIntensity: String = "light",
+    /** 像真人打字（活人感二期 B 件·三旋钮）：开 → 每轮后缀区追加一小段「这一条的标点 / 长短 / 逻辑」。默认关——打开前请求与旧行为逐字节一致。 */
+    val humanTypingEnabled: Boolean = false,
+    /** 真人打字强度 raw："light"（默认，不放「不用讲逻辑」档）/ "standard"（全档）。 */
+    val humanTypingIntensity: String = "light",
     /** 省钱模式（时间感知四期·图纸二）：开 → 每轮都会变的检索内容挪到最新用户消息前、聊天片段改叙述句、朋友圈首行只写日期。默认关。 */
     val cacheSaverEnabled: Boolean = false,
 

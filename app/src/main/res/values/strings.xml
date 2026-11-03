@@ -320,6 +320,25 @@
     <string name="pb_quality_l2">Have your own views and attitude; you don\'t have to agree with everything. But natural openers like “really?”, “haha”, “mhm” are perfectly fine.</string>
     <string name="pb_quality_l3">Don\'t parrot back what they just said before replying — respond with substance, and skip empty praise or forced flattery.</string>
     <string name="pb_quality_l4">You don\'t need to end every message with a question to keep the topic going; it\'s fine to let it land naturally.</string>
+    <string name="pb_voice_title">[Speaking Style]</string>
+    <string name="pb_voice_l1">Type like you\'re on a phone: one sentence if one is enough; no headings, no lists, no structured layout.</string>
+    <string name="pb_voice_l2">Punctuation can be loose: a run of commas is fine, not every sentence needs a tidy period, and now and then a line can have none.</string>
+    <string name="pb_voice_l3">Allow imperfection: spoken repetition, half-finished thoughts, and self-corrections are fine; don\'t make every paragraph the same length.</string>
+    <string name="pb_voice_l4">Don\'t summarize, don\'t get profound, don\'t hand out a list of advice. Stop when the thought ends.</string>
+    <string name="pb_voice_l5">Don\'t explain what you\'re doing, and don\'t repeat back what they just said.</string>
+    <string name="pb_voice_l6">Use filler words and emoji sparingly, at most once per reply; don\'t end every message with a question.</string>
+    <string name="pb_voice_l7">It doesn\'t have to be seamless; it\'s fine to jump a little, like you\'re thinking while typing.</string>
+    <string name="pb_voice_examples">e.g.\nthem: today was exhausting\nyou: then don\'t move  just lie there\nthem: are you busy again\nyou: yeah just finished  you\nthem: i have to tell you something\nyou: go ahead</string>
+    <string name="pb_tone_header">[How to say this one] Only affects this reply; don\'t recite it.</string>
+    <string name="pb_tone_punct_casual">Punctuation: skip periods when you can; use commas or spaces instead</string>
+    <string name="pb_tone_punct_normal">Punctuation: normal, but don\'t be too tidy</string>
+    <string name="pb_tone_len_1">Length: one line, a dozen words at most</string>
+    <string name="pb_tone_len_2">Length: two or three lines, don\'t spread out</string>
+    <string name="pb_tone_len_3">Length: four or five lines, you can say a bit more</string>
+    <string name="pb_tone_len_4">Length: you can go longer, like you\'re warmed up</string>
+    <string name="pb_tone_logic_tight">Logic: follow them, don\'t circle around</string>
+    <string name="pb_tone_logic_loose">Logic: say it as it comes, a little jump is fine</string>
+    <string name="pb_tone_logic_free">Logic: logic not required, a small contradiction is fine</string>
     <string name="pb_mood_title">[Mood Expression]</string>
     <string name="pb_mood_l1">At the very end of your whole reply, append your current mood once (only once, not on every message). Format:</string>
     <string name="pb_mood_fmt">Format: [mood:emoji|color|description no longer than 6 words]</string>
@@ -478,6 +497,10 @@
     <!-- Liveness phase 1: natural texting tone toggle (settings home · chat behavior group) -->
     <string name="settings_texting_tone_title">Natural texting tone</string>
     <string name="settings_texting_tone_desc">Characters text like real people; turn off for formal-style characters</string>
+    <string name="settings_anti_slop_penalty_title">Less AI-ish (sampling penalty)</string>
+    <string name="settings_anti_slop_penalty_desc">Reduces repeated words and stock phrases; skipped automatically if unsupported</string>
+    <string name="settings_human_typing_title">Type like a real person (punctuation and length)</string>
+    <string name="settings_human_typing_desc">Vary each reply: looser punctuation, uneven length, occasionally less logical</string>
     <string name="pm_tip_1">Modules later in the list carry more weight with the AI</string>
     <string name="pm_tip_2">Suffix-zone modules are injected after the chat history — strongest effect</string>
     <string name="pm_tip_3">Custom content supports the {{char}} and {{user}} macros</string>

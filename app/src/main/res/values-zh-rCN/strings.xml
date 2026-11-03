@@ -353,6 +353,25 @@
     <string name="pb_quality_l2">有自己的看法和态度，不用什么都附和；“真的吗”“哈哈”“嗯嗯”这种自然搭话很好。</string>
     <string name="pb_quality_l3">别原样复述对方的话再回，直接给实在的回应，也别空夸、硬恭维。</string>
     <string name="pb_quality_l4">不用每条都靠抛问题硬接话题，聊到自然收住就行。</string>
+    <string name="pb_voice_title">【说话口气】</string>
+    <string name="pb_voice_l1">像在手机上打字：一句能说完就一句，不铺排，不写小标题，不用列表。</string>
+    <string name="pb_voice_l2">标点随意一点：可以用逗号一路断下去，也不必句句都收得工整；偶尔一句不带标点也行。</string>
+    <string name="pb_voice_l3">允许不完美：口语的重复、半截话、说一半改口，都可以留着；别每段都一样长。</string>
+    <string name="pb_voice_l4">不总结、不升华、不给建议清单。说完这一句就停。</string>
+    <string name="pb_voice_l5">不解释自己在做什么，也不复述对方刚说过的话。</string>
+    <string name="pb_voice_l6">语气词和表情少量用，一条回复里最多一处；别每条都靠问句收尾。</string>
+    <string name="pb_voice_l7">前后不必严丝合缝，像边想边打；思路跳一点没关系。</string>
+    <string name="pb_voice_examples">比如——\n对方：今天好累\n你：那就别动了 躺着\n对方：你是不是又在忙\n你：嗯 刚弄完 你呢\n对方：我跟你说个事\n你：你说</string>
+    <string name="pb_tone_header">【这一条怎么说话】只影响这一条，不用念出来。</string>
+    <string name="pb_tone_punct_casual">标点：能不用句号就不用，多用逗号或空格断开</string>
+    <string name="pb_tone_punct_normal">标点：正常用，但别太工整</string>
+    <string name="pb_tone_len_1">长短：就一句，十几个字以内</string>
+    <string name="pb_tone_len_2">长短：两三句，别铺开</string>
+    <string name="pb_tone_len_3">长短：四五句，可以多说一点</string>
+    <string name="pb_tone_len_4">长短：可以长一点，像聊开了</string>
+    <string name="pb_tone_logic_tight">逻辑：顺着对方说，别绕</string>
+    <string name="pb_tone_logic_loose">逻辑：想到哪说到哪，偶尔跳一下没事</string>
+    <string name="pb_tone_logic_free">逻辑：不用讲逻辑，前后有点对不上也没关系</string>
     <string name="pb_mood_title">【情绪表达】</string>
     <string name="pb_mood_l1">在整段回复的最末尾，附上一次你当前的情绪（只加一次，别每条都加）。格式：</string>
     <string name="pb_mood_fmt">格式说明：[mood:emoji表情|颜色|不超过6个字的描述]</string>
@@ -508,6 +527,10 @@
     <!-- 活人感一期 P1 自然短句口吻开关（设置主页·聊天行为组） -->
     <string name="settings_texting_tone_title">自然短句口吻</string>
     <string name="settings_texting_tone_desc">让角色像发消息一样说话，长短随情境；书面风角色可关闭</string>
+    <string name="settings_anti_slop_penalty_title">少点 AI 味（采样惩罚）</string>
+    <string name="settings_anti_slop_penalty_desc">降低重复用词和套话。个别服务商不支持，会自动跳过</string>
+    <string name="settings_human_typing_title">像真人打字（标点与长短）</string>
+    <string name="settings_human_typing_desc">每条回复随机一点：标点松、句子长短不一，偶尔不太讲逻辑</string>
     <string name="pm_tip_1">列表中靠后的模块，AI 会更重视</string>
     <string name="pm_tip_2">后置区模块在聊天记录之后注入，效果最强</string>
     <string name="pm_tip_3">自定义内容支持 {{char}} 和 {{user}} 宏</string>

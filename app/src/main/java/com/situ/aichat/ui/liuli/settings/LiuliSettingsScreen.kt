@@ -62,6 +62,8 @@ fun LiuliSettingsScreen(
     val advancedEnabled by profileViewModel.advancedModeEnabled.collectAsStateWithLifecycle()
     val emotionAnimEnabled by profileViewModel.emotionAnimationEnabled.collectAsStateWithLifecycle()
     val textingToneEnabled by profileViewModel.textingToneEnabled.collectAsStateWithLifecycle()
+    val antiSlopPenaltyEnabled by profileViewModel.antiSlopPenaltyEnabled.collectAsStateWithLifecycle()
+    val humanTypingEnabled by profileViewModel.humanTypingEnabled.collectAsStateWithLifecycle()
     val skin by overviewViewModel.appSkin.collectAsStateWithLifecycle()
     val appearanceMode by overviewViewModel.appearanceMode.collectAsStateWithLifecycle()
     val ttsProvider by overviewViewModel.ttsProvider.collectAsStateWithLifecycle()
@@ -89,6 +91,8 @@ fun LiuliSettingsScreen(
         embedderState = embedderLoadState,
         currentLangTag = currentTag,
         version = BuildConfig.VERSION_NAME,
+        antiSlopPenaltyEnabled = antiSlopPenaltyEnabled,
+        humanTypingEnabled = humanTypingEnabled,
     )
 
     LiuliSettingsContent(
@@ -97,6 +101,8 @@ fun LiuliSettingsScreen(
         actions = LiuliSettingsActions(
             onSetEmotionAnimation = { profileViewModel.setEmotionAnimation(it) },
             onSetTextingTone = { profileViewModel.setTextingTone(it) },
+            onSetAntiSlopPenalty = { profileViewModel.setAntiSlopPenalty(it) },
+            onSetHumanTyping = { profileViewModel.setHumanTyping(it) },
             onSetAdvancedMode = { profileViewModel.setAdvancedMode(it) },
             onSelectLanguage = { tag ->
                 if (tag != currentTag) {

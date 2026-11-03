@@ -84,6 +84,8 @@ class LiuliSettingsContentTest {
     private val actions = LiuliSettingsActions(
         onSetEmotionAnimation = { toggles["emotion"] = it },
         onSetTextingTone = { toggles["tone"] = it },
+        onSetAntiSlopPenalty = { toggles["antiSlop"] = it },
+        onSetHumanTyping = { toggles["humanTyping"] = it },
         onSetAdvancedMode = { toggles["advanced"] = it },
         onSelectLanguage = { pickedLang = it },
     )

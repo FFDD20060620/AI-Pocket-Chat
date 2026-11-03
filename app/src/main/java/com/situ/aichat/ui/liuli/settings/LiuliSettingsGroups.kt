@@ -147,6 +147,24 @@ internal fun ColumnScope.chatBehaviorGroup(term: String, state: LiuliSettingsSta
             icon = Icons.AutoMirrored.Filled.Chat,
             tileColor = LiuliPalette.tileChat,
         )
+        if (state.advancedEnabled) {
+            LiuliToggleRow(
+                title = stringResource(R.string.settings_anti_slop_penalty_title),
+                subtitle = stringResource(R.string.settings_anti_slop_penalty_desc),
+                checked = state.antiSlopPenaltyEnabled,
+                onCheckedChange = actions.onSetAntiSlopPenalty,
+                icon = Icons.Filled.Tune,
+                tileColor = LiuliPalette.tileChat,
+            )
+            LiuliToggleRow(
+                title = stringResource(R.string.settings_human_typing_title),
+                subtitle = stringResource(R.string.settings_human_typing_desc),
+                checked = state.humanTypingEnabled,
+                onCheckedChange = actions.onSetHumanTyping,
+                icon = Icons.Filled.Keyboard,
+                tileColor = LiuliPalette.tileChat,
+            )
+        }
         LiuliNavRow(title = immersive, onClick = cb.onOpenImmersiveSettings, icon = Icons.Filled.Bedtime, tileColor = LiuliPalette.tileChat)
         LiuliNavRow(title = filter, onClick = cb.onOpenContentFilter, icon = Icons.Filled.FilterAlt, tileColor = LiuliPalette.tileChat)
     }
