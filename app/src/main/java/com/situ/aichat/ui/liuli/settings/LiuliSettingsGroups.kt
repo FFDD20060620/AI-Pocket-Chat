@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Forum

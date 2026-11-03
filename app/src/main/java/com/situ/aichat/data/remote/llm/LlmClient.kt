@@ -224,6 +224,8 @@ class LlmClient(
                     dropTemp = true
                     completionAttempt(messages, config, temperature, maxTokens, responseFormat, onUsage, dropTemperature = true, sessionKey = sessionKey)
                 }
+                // 非流式/旁路压根不发采样惩罚（completionAttempt 无此形参），分类里理论上到不了这一档；真到了照旧抛。
+                FirstCall400RetryPlan.DROP_PENALTIES -> throw e
                 FirstCall400RetryPlan.NONE -> throw e
             }
         }
