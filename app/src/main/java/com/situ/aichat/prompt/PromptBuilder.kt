@@ -1,6 +1,7 @@
 package com.situ.aichat.prompt
 
 import com.situ.aichat.prompt.style.StyleRoller
+import com.situ.aichat.prompt.style.ToneLearned
 
 import com.situ.aichat.R
 import com.situ.aichat.data.model.AppSettings
@@ -322,6 +323,8 @@ object PromptBuilder {
          * 前置→历史→后置就地排序。不影响返回的消息本身。
          */
         segmentSink: MutableList<ContextSegment>? = null,
+        /** 去 AI 味学到的东西（方案 §7）：改写对照 / 负例 / 语风样本。默认空 = 整段不注入（旧行为）。 */
+        toneLearned: ToneLearned = ToneLearned.EMPTY,
     ): List<ChatMessageDto> {
         val chatMessages = mutableListOf<ChatMessageDto>()
 
@@ -589,6 +592,13 @@ object PromptBuilder {
             if (effectiveScene == PromptScene.ONLINE_CHAT && appSettings.humanTypingEnabled) {
                 val roll = StyleRoller.roll(character.uuid, System.nanoTime(), appSettings.humanTypingIntensity)
                 chatMessages.add(ChatMessageDto(role = ROLE_SYSTEM, content = buildToneRollContent(strings, roll)))
+            }
+            // 学到的说法（活人感二期 D 件·方案 §7）：改过的句子 / 被点名的负例 / 用户自己的口气。
+            // 只在普通聊天注入；一条都没有时整段不出现（buildToneLearnedContent 返回 null）。
+            if (effectiveScene == PromptScene.ONLINE_CHAT) {
+                buildToneLearnedContent(strings, toneLearned)?.let {
+                    chatMessages.add(ChatMessageDto(role = ROLE_SYSTEM, content = it))
+                }
             }
             // 等待期（Phase 9·§7：仅非线下）：有「已确认未来约定」时注入【待见约定】，让 AI 自然提起/期待，别生硬复述。
             // 段标题【待见约定】刻意避开 DirtyMessageDetector 保留的【见面 · 】【长期事实】【你今天完整的日程】。

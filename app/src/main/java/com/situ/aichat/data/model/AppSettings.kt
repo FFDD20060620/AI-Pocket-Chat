@@ -206,6 +206,11 @@ data class AppSettings(
     val humanTypingEnabled: Boolean = false,
     /** 真人打字强度 raw："light"（默认，不放「不用讲逻辑」档）/ "standard"（全档）。 */
     val humanTypingIntensity: String = "light",
+    /**
+     * 运行时去 AI 腔（活人感二期 C 件·方案 §6）：[ANTI_SLOP_OFF] 或 [ANTI_SLOP_STRIP]。
+     * 默认关——关着时投递路径与旧版逐字节一致。
+     */
+    val antiSlopLevel: String = ANTI_SLOP_OFF,
     /** 省钱模式（时间感知四期·图纸二）：开 → 每轮都会变的检索内容挪到最新用户消息前、聊天片段改叙述句、朋友圈首行只写日期。默认关。 */
     val cacheSaverEnabled: Boolean = false,
 
@@ -359,6 +364,9 @@ data class AppSettings(
         get() = if (logRetentionCount > 0) logRetentionCount else DEFAULT_LOG_RETENTION_COUNT
 
     companion object {
+        const val ANTI_SLOP_OFF = "off"
+        const val ANTI_SLOP_STRIP = "strip"
+
         // 长期记忆（滚动摘要）字数上限默认值（2026-07-11 拍板 3000→5000；滑杆 200..5000 步 100，手填可超上限）
         const val DEFAULT_MEMORY_SUMMARY_MAX_LENGTH = 5000
         // 短期记忆窗口默认轮数（2026-09-05 拍板 20→30；默认参与 SettingsRepository 回退的单源）

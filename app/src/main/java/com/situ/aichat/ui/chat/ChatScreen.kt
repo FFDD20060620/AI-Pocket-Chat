@@ -237,6 +237,16 @@ fun ChatScreen(
     val offlineMessages by viewModel.offlineSessionMessages.collectAsStateWithLifecycle()
 
     val snackbarHost = remember { SnackbarHostState() }
+
+    // 「这句太 AI 了」改写弹窗（方案 §7.2）：状态挂在 VM，两个皮肤共用一个弹窗。
+    val tooAiEditTarget by viewModel.tooAiEditTarget.collectAsStateWithLifecycle()
+    tooAiEditTarget?.let { target ->
+        TooAiEditDialog(
+            original = target.content,
+            onCancel = { viewModel.cancelTooAiEdit() },
+            onSave = { viewModel.saveTooAiEdit(it) },
+        )
+    }
     // C3-haptics（契约 §2 触觉口径）：聊天屏全链路改经 LocalAppHaptics 分级语义，不再直调 LocalHapticFeedback。
     val haptics = LocalAppHaptics.current
     val reduceMotion = rememberReduceMotion()
@@ -396,6 +406,7 @@ fun ChatScreen(
             onOpenImage = { path -> imageState.viewerImagePath = path },
             onSaveImage = { msg -> viewModel.image.saveToGallery(msg.imageRelativePath) },
             onQuote = { viewModel.setReplyTarget(it) },
+            onTooAi = { viewModel.beginTooAiEdit(it) },
             onDelete = { msg ->
                 playDeleteSound() // 轻一声（静音/振动档自动跳过）
                 haptics.light() // 轻微震动

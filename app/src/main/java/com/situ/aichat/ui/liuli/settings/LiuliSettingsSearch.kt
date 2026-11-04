@@ -42,6 +42,8 @@ data class LiuliSettingsState(
     val version: String,
     /** 采样惩罚开关（活人感二期 A 件）：只在「高级」打开时显示；默认 false。 */
     val antiSlopPenaltyEnabled: Boolean = false,
+    /** 自动删掉 AI 腔（C 件）：默认关，关着时投递路径与旧版一致。 */
+    val antiSlopStripEnabled: Boolean = false,
     /** 像真人打字开关（活人感二期 B 件）：只在「高级」打开时显示；默认 false。 */
     val humanTypingEnabled: Boolean = false,
 )
@@ -86,6 +88,8 @@ data class LiuliSettingsActions(
     val onSetTextingTone: (Boolean) -> Unit,
     val onSetAntiSlopPenalty: (Boolean) -> Unit,
     val onSetHumanTyping: (Boolean) -> Unit,
+    /** 自动删掉 AI 腔（C 件）。 */
+    val onSetAntiSlopStrip: (Boolean) -> Unit,
     val onSetAdvancedMode: (Boolean) -> Unit,
     /** 语言弹窗里选中某个 tag（Screen 层接 `LocaleManager` + `recreate`·F2 :289-303 逐字搬）。 */
     val onSelectLanguage: (String) -> Unit,

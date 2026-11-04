@@ -7,6 +7,7 @@ import com.situ.aichat.promise.PromiseInjectionRenderer
 import com.situ.aichat.prompt.style.LengthTone
 import com.situ.aichat.prompt.style.LogicTone
 import com.situ.aichat.prompt.style.PunctuationTone
+import com.situ.aichat.prompt.style.ToneLearned
 import com.situ.aichat.prompt.style.ToneRoll
 import com.situ.aichat.prompt.timesense.SpecialDays
 import com.situ.aichat.prompt.timesense.TimeSenseLines
@@ -405,4 +406,35 @@ internal fun buildOfflineMeetingMemoryContent(ctx: PromptBuilder.BuildContext): 
     if (raw.isBlank()) return ""
     return ctx.strings.s(R.string.pb_meeting_memory_frame, ctx.resolvedCharacterName, ctx.resolvedUserName) +
         "\n\n" + raw
+}
+
+/**
+ * 学到的说法（活人感二期 D 件·方案 §7.1/§7.2/§7.3）：改写对照 → 负例 → 语风样本。
+ *
+ * 三段的取舍：
+ * - 改写对照最多 5 对，**原句与改后都带**——只给「别这么说」学不会「该怎么说」；
+ * - 负例只带最早的 3 条（再多的都在重复同一种毛病）；
+ * - 语风样本只取 3 条、只学口气，明确写「别照抄内容」，防它把用户原话当台词复述。
+ *
+ * 全部为空时返回 null（整段不出现，绝不出现空标题）。总长截到 900 字，防提示词被学习样本撑爆。
+ */
+internal fun buildToneLearnedContent(s: PromptStrings, learned: ToneLearned): String? {
+    if (learned.isEmpty) return null
+    val prompt = learned.forPrompt()
+    val lines = mutableListOf<String>()
+    if (prompt.rewrites.isNotEmpty()) {
+        lines += s.s(R.string.pb_learn_rewrite_head)
+        prompt.rewrites.forEach { pair ->
+            lines += s.s(R.string.pb_learn_rewrite_item, pair.original, pair.edited)
+        }
+    }
+    if (prompt.negatives.isNotEmpty()) {
+        lines += s.s(R.string.pb_learn_negative_head)
+        prompt.negatives.forEach { neg -> lines += s.s(R.string.pb_learn_negative_item, neg.snippet) }
+    }
+    if (prompt.styleSamples.isNotEmpty()) {
+        lines += s.s(R.string.pb_learn_style_head)
+        prompt.styleSamples.forEach { sample -> lines += s.s(R.string.pb_learn_style_item, sample.text) }
+    }
+    return lines.joinToString("\n").take(900)
 }

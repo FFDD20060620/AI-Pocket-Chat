@@ -166,6 +166,14 @@ internal fun ColumnScope.chatBehaviorGroup(term: String, state: LiuliSettingsSta
                 icon = Icons.Filled.Keyboard,
                 tileColor = LiuliPalette.tileChat,
             )
+            LiuliToggleRow(
+                title = stringResource(R.string.settings_anti_slop_strip_title),
+                subtitle = stringResource(R.string.settings_anti_slop_strip_desc),
+                checked = state.antiSlopStripEnabled,
+                onCheckedChange = actions.onSetAntiSlopStrip,
+                icon = Icons.Filled.Tune,
+                tileColor = LiuliPalette.tileChat,
+            )
         }
         LiuliNavRow(title = immersive, onClick = cb.onOpenImmersiveSettings, icon = Icons.Filled.Bedtime, tileColor = LiuliPalette.tileChat)
         LiuliNavRow(title = filter, onClick = cb.onOpenContentFilter, icon = Icons.Filled.FilterAlt, tileColor = LiuliPalette.tileChat)

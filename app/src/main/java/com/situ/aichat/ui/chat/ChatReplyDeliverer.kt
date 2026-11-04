@@ -8,6 +8,7 @@ import com.situ.aichat.data.calendar.CalendarAction
 import com.situ.aichat.data.local.entity.CharacterEntity
 import com.situ.aichat.data.local.entity.MessageEntity
 import com.situ.aichat.data.model.AppSettings
+import com.situ.aichat.prompt.AiToneDetector
 import com.situ.aichat.data.model.MeetingCandidate
 import com.situ.aichat.data.model.MoodHistoryEntry
 import com.situ.aichat.data.repository.CharacterRepository
@@ -276,9 +277,17 @@ internal class ChatReplyDeliverer(
                 .map { ReplyParser.stripMiniMaxVoiceTags(it).trim() }
                 .filter { it.isNotEmpty() }
         }
+        // C 件（方案 §6）：运行时去 AI 腔。三道门控——普通聊天、非即时单条、用户开了才跑。
+        // 删空了就退回原文：宁可留一句难听的，也不能让回合变空去触发重试链（B14）。
+        val toneReviewed = if (offlineSessionId == null && !immediate && settings.antiSlopLevel == AppSettings.ANTI_SLOP_STRIP) {
+            val reviewed = split.map { AiToneDetector.strip(it) }.filter { it.isNotEmpty() }
+            reviewed.ifEmpty { split }
+        } else {
+            split
+        }
         // 落库前置闸（图纸 2026-09-01 件①）：判脏的段直接丢弃不落库；kind 与下方 insertSegment 同口径。
         // 全段皆脏 → 返回空表 = 空回合，接 AssistantTurnEngine 既有重试链（零新循环）。
-        val segments = AssistantOutputGate.filterSegments(split, isOfflineMode = offlineSessionId != null, source = "chat")
+        val segments = AssistantOutputGate.filterSegments(toneReviewed, isOfflineMode = offlineSessionId != null, source = "chat")
         if (segments.isEmpty()) return emptyList()
 
         val stored = mutableListOf<MessageEntity>()

@@ -94,7 +94,10 @@ android {
         // keystore.properties 存在时创建正式 release 签名（实体 .jks 在仓库外 ~/keystores/，绝不进库）。
         if (keystorePropertiesFile.exists()) {
             create("release") {
-                storeFile = File(keystoreProperties.getProperty("storeFile"))
+                // 固定签名（2026-11-05 用户拍板）：密钥库随仓库走，所有 CI 包同一把钥匙，
+                // 装新版可以直接覆盖安装、不丢数据。口令写在这里只是个人 fork 的取舍，不用于分发。
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storeType = "PKCS12"
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
@@ -103,6 +106,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            // 调试/CI 包也走这把固定签名：否则每次 GitHub 构建机新建临时 debug 钥匙，
+            // 包与包签名不一致，安卓只允许卸载重装（数据一起删）。
+            signingConfig = if (keystorePropertiesFile.exists())
+                signingConfigs.getByName("release")
+            else
+                signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

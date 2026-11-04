@@ -86,6 +86,7 @@ class LiuliSettingsContentTest {
         onSetTextingTone = { toggles["tone"] = it },
         onSetAntiSlopPenalty = { toggles["antiSlop"] = it },
         onSetHumanTyping = { toggles["humanTyping"] = it },
+        onSetAntiSlopStrip = { toggles["antiSlopStrip"] = it },
         onSetAdvancedMode = { toggles["advanced"] = it },
         onSelectLanguage = { pickedLang = it },
     )

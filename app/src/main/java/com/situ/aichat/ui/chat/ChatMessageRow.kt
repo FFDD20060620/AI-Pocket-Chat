@@ -77,6 +77,8 @@ internal class MessageRowActions(
     /** 长按菜单「保存到相册」（仅图片消息出现）。 */
     val onSaveImage: (MessageEntity) -> Unit,
     val onQuote: (MessageEntity) -> Unit,
+    /** 长按菜单「这句太 AI 了」（仅纯文本 AI 消息）：打开改写弹窗，改完替换这条。 */
+    val onTooAi: (MessageEntity) -> Unit,
     val onDelete: (MessageEntity) -> Unit,
     /** M2 沉浸菜单：长按开菜单（消息 + 气泡在窗口内的边界·供覆盖层原位浮起与菜单定位）。 */
     val onOpenMenu: (message: MessageEntity, bubbleBounds: Rect, canRegenerate: Boolean) -> Unit,

@@ -26,7 +26,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.situ.aichat.ui.chat.ChatImageState
+import com.situ.aichat.ui.chat.TooAiEditDialog
 import com.situ.aichat.ui.chat.ChatImmersiveMenuState
 import com.situ.aichat.ui.chat.ChatInputPanelState
 import com.situ.aichat.ui.chat.ChatScrollCoordinator
@@ -168,6 +170,16 @@ internal fun rememberLiuliChatSession(
     val imageState = rememberChatImageState(viewModel)
     val deleteArm = remember { mutableStateOf(0L) }
 
+    // 「这句太 AI 了」改写弹窗（方案 §7.2）：状态挂在 VM，两个皮肤共用一个弹窗。
+    val tooAiEditTarget by viewModel.tooAiEditTarget.collectAsStateWithLifecycle()
+    tooAiEditTarget?.let { target ->
+        TooAiEditDialog(
+            original = target.content,
+            onCancel = { viewModel.cancelTooAiEdit() },
+            onSave = { viewModel.saveTooAiEdit(it) },
+        )
+    }
+
     val inputState = rememberSaveable { mutableStateOf("") }
     val entryScalePlayed = remember { mutableSetOf<String>() }
     val emotionPlayed = rememberSaveable { ArrayList<String>() }
@@ -196,6 +208,7 @@ internal fun rememberLiuliChatSession(
             onOpenImage = { path -> imageState.viewerImagePath = path },
             onSaveImage = { msg -> viewModel.image.saveToGallery(msg.imageRelativePath) },
             onQuote = { viewModel.setReplyTarget(it) },
+            onTooAi = { viewModel.beginTooAiEdit(it) },
             onDelete = { msg ->
                 playDeleteSound()
                 haptics.light()

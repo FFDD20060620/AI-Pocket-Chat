@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.situ.aichat.data.local.SettingsPreferences
 import com.situ.aichat.data.local.dao.UserProfileDao
 import com.situ.aichat.data.local.entity.UserProfileEntity
+import com.situ.aichat.data.model.AppSettings
 import com.situ.aichat.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -100,5 +101,20 @@ class UserProfileViewModel @Inject constructor(
 
     fun setHumanTyping(enabled: Boolean) {
         viewModelScope.launch { settings.setHumanTypingEnabled(enabled) }
+    }
+
+    /**
+     * 自动删掉 AI 腔（C 件）：开 → 落库前删掉「客服腔 / 升华结尾 / 模板开场」这类整句。
+     * 入参是「开/关」，落盘是档位字符串——以后加 notice 档不用改 UI。
+     */
+    val antiSlopStripEnabled: StateFlow<Boolean> =
+        settings.appSettings
+            .map { it.antiSlopLevel == AppSettings.ANTI_SLOP_STRIP }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setAntiSlopStrip(enabled: Boolean) {
+        viewModelScope.launch {
+            settings.setAntiSlopLevel(if (enabled) AppSettings.ANTI_SLOP_STRIP else AppSettings.ANTI_SLOP_OFF)
+        }
     }
 }

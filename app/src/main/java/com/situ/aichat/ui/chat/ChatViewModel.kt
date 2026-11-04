@@ -1,6 +1,7 @@
 package com.situ.aichat.ui.chat
 
 import android.content.Context
+import android.widget.Toast
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
@@ -407,6 +408,44 @@ class ChatViewModel @Inject constructor(
     private val _replyTarget = MutableStateFlow<MessageEntity?>(null)
     val replyTarget: StateFlow<MessageEntity?> = _replyTarget.asStateFlow()
 
+    /** 「太 AI 了」弹窗当前要改的那条（null = 弹窗关闭）。瞬态，不入 saveable。 */
+    private val _tooAiEditTarget = MutableStateFlow<MessageEntity?>(null)
+    val tooAiEditTarget: StateFlow<MessageEntity?> = _tooAiEditTarget.asStateFlow()
+
+    fun beginTooAiEdit(message: MessageEntity) {
+        _tooAiEditTarget.value = message
+    }
+
+    fun cancelTooAiEdit() {
+        _tooAiEditTarget.value = null
+    }
+
+    /**
+     * 把 AI 的那一句换成人自己改的版本（方案 §7.2）：
+     * 1. 更新正文并清空旧向量（下一轮补算，别让检索拿着一句已经不存在的文本）；
+     * 2. 记一对「原句 → 改写」，原句同时进负例；
+     * 3. 若这条正被引用，同步刷新引用快照（`ChatScreen` 存的是对象快照）。
+     *
+     * 不发请求、不重跑、不删消息——改动是原子的单条 UPDATE。
+     */
+    fun saveTooAiEdit(edited: String) {
+        val message = _tooAiEditTarget.value ?: return
+        _tooAiEditTarget.value = null
+        val original = message.content
+        val text = edited.trim().take(300)
+        if (text.isEmpty() || text == original.trim()) return
+        viewModelScope.launch {
+            withContext(NonCancellable) {
+                messageRepo.upsert(message.copy(content = text, embedding = null))
+                settingsRepo.recordToneRewrite(original = original, edited = text)
+            }
+            if (_replyTarget.value?.messageUUID == message.messageUUID) {
+                _replyTarget.value = message.copy(content = text, embedding = null)
+            }
+            Toast.makeText(appContext, appContext.getString(R.string.tone_edit_saved), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     fun setReplyTarget(message: MessageEntity) {
         _replyTarget.value = message
     }
@@ -751,6 +790,7 @@ class ChatViewModel @Inject constructor(
         errorFlow = _error,
         infoToastFlow = _infoToast,
         isDelivering = _isDelivering,
+        settingsRepo = settingsRepo,
     )
 
     /** 聊天内礼物 / 红包钱路协作者（刀9 抽出）。送礼后的 AI 回复经 [AssistantTurnController.enqueueExternalTurn] 入合并等待窗（C1）。 */
@@ -818,7 +858,12 @@ class ChatViewModel @Inject constructor(
     )
 
     // 公开发送入口薄委托（ChatScreen 直接调；公开 API 不变）。
-    fun send(text: String): Boolean = assistantTurnController.send(text)
+    fun send(text: String): Boolean {
+        val accepted = assistantTurnController.send(text)
+        // 语风库（方案 §7.1）：只收用户自己打的、像日常说话的短句；不合格的在 recordStyleSample 里就被判掉。
+        if (accepted) viewModelScope.launch { settingsRepo.recordStyleSample(text) }
+        return accepted
+    }
     fun sendVoiceDraft() = assistantTurnController.sendVoiceDraft()
     fun sendStickerMessage(stickerId: String) = assistantTurnController.sendStickerMessage(stickerId)
     fun sendImages(uris: List<android.net.Uri>) = assistantTurnController.sendImages(uris)

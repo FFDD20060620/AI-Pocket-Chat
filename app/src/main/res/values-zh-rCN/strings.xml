@@ -3844,4 +3844,20 @@
 	<string name="clog_reader_jump_bottom">跳到最后</string>
 	<string name="clog_reply_reasoning">这一轮模型思考了 %1$s tk（只记了用量，没记思考原文）。</string>
 	<string name="clog_reply_empty">（无内容）</string>
+	<!-- 活人感二期 D 件：「太 AI 了」改写 + 学到的东西（方案 §7） -->
+	<string name="settings_anti_slop_strip_title">自动删掉 AI 腔</string>
+	<string name="settings_anti_slop_strip_desc">落库前删掉「有什么可以帮您」「希望对你有所帮助」这类整句；全删光就保留原文</string>
+	<string name="chat_menu_too_ai">这句太 AI 了</string>
+	<string name="tone_edit_title">这句太 AI 了</string>
+	<string name="tone_edit_hint">改成你自己会说的话，它照着学。不想改就直接取消。</string>
+	<string name="tone_edit_placeholder">比如：忙的时候也要记得喝水</string>
+	<string name="tone_edit_save">保存</string>
+	<string name="tone_edit_cancel">取消</string>
+	<string name="tone_edit_saved">改好了，它也记下了</string>
+	<string name="pb_learn_rewrite_head">【你被改过的说法】下面这些是你以前说的，被改成了后面的样子；以后别再按原句说。</string>
+	<string name="pb_learn_rewrite_item">- 原：「%1$s」→ 改：「%2$s」</string>
+	<string name="pb_learn_negative_head">这些说法也别再用：</string>
+	<string name="pb_learn_negative_item">- %1$s</string>
+	<string name="pb_learn_style_head">【你的说话习惯】下面几句是你自己打的字，只学口气，别照抄内容：</string>
+	<string name="pb_learn_style_item">- %1$s</string>
 </resources>

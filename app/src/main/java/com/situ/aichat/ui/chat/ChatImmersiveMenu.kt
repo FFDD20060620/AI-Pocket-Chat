@@ -33,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
@@ -198,7 +199,7 @@ internal class ChatImmersiveMenuState {
 }
 
 /** 菜单动作枚举（壳换、动作面冻结）。 */
-internal enum class ImmersiveMenuAction { COPY, SAVE_IMAGE, QUOTE, REGENERATE, DELETE }
+internal enum class ImmersiveMenuAction { COPY, SAVE_IMAGE, QUOTE, TOO_AI, REGENERATE, DELETE }
 
 /**
  * 动作显示条件——除 2026-09-04 三项用户拍板变更外，自旧 DropdownMenu（ChatMessageRow）**逐字冻结**：
@@ -229,10 +230,16 @@ internal fun immersiveMenuActions(
      * 调用点表态，比补一条 T2 更硬。
      */
     canQuote: Boolean,
+    /**
+     * 本条是否给「这句太 AI 了」（2026-11-04 用户拍板·方案 §7.2）：只有**纯文本的 AI 消息**才给——
+     * 改的是那句话本身，卡片/通话记录/图片都没有「改写口气」的意义。
+     */
+    canTooAi: Boolean = false,
 ): List<ImmersiveMenuAction> = buildList {
     // 图片消息不给「复制」——它的正文是内部哨兵 `[图片]`，复制过去是三个没用的字符。
     if (hasImage) add(ImmersiveMenuAction.SAVE_IMAGE) else add(ImmersiveMenuAction.COPY)
     if (canQuote) add(ImmersiveMenuAction.QUOTE)
+    if (!isUser && canTooAi) add(ImmersiveMenuAction.TOO_AI)
     if (!isUser && canRegenerate) add(ImmersiveMenuAction.REGENERATE)
     add(ImmersiveMenuAction.DELETE)
 }
@@ -282,6 +289,7 @@ internal fun immersiveMenuActionLabel(action: ImmersiveMenuAction): String = whe
     ImmersiveMenuAction.COPY -> "复制"
     ImmersiveMenuAction.SAVE_IMAGE -> "保存到相册"
     ImmersiveMenuAction.QUOTE -> "引用"
+    ImmersiveMenuAction.TOO_AI -> "这句太 AI 了"
     ImmersiveMenuAction.REGENERATE -> "重新生成"
     ImmersiveMenuAction.DELETE -> "删除"
 }
@@ -375,6 +383,10 @@ internal fun ChatImmersiveMenuOverlay(
             hasImage = message.imageRelativePath != null,
             canRegenerate = state.canRegenerate,
             canQuote = messageCanBeQuoted(message),
+            canTooAi = message.roleRaw == "assistant" &&
+                MessageKind.fromRaw(message.messageKindRaw) == MessageKind.PLAIN_TEXT &&
+                message.imageRelativePath == null &&
+                message.content.isNotBlank(),
         )
     }
 
@@ -460,6 +472,7 @@ internal fun ChatImmersiveMenuOverlay(
                     }
                     ImmersiveMenuAction.SAVE_IMAGE -> actions.onSaveImage(message)
                     ImmersiveMenuAction.QUOTE -> actions.onQuote(message)
+                    ImmersiveMenuAction.TOO_AI -> actions.onTooAi(message)
                     ImmersiveMenuAction.REGENERATE -> actions.onRegenerate()
                     ImmersiveMenuAction.DELETE -> actions.onDelete(message)
                 }
@@ -516,11 +529,13 @@ private fun ImmersiveMenuCard(
                         ImmersiveMenuAction.COPY -> Icons.Filled.ContentCopy
                         ImmersiveMenuAction.SAVE_IMAGE -> Icons.Filled.FileDownload
                         ImmersiveMenuAction.QUOTE -> Icons.Filled.FormatQuote
+                        ImmersiveMenuAction.TOO_AI -> Icons.Filled.Edit
                         ImmersiveMenuAction.REGENERATE -> Icons.Filled.Refresh
                         ImmersiveMenuAction.DELETE -> Icons.Filled.Delete
                     }
                     // 语义色冻结（契约 §3.3）：重新生成=陶土玫品牌动作、删除=error 功能深档、其余中性。
                     val tint = when (action) {
+                        ImmersiveMenuAction.TOO_AI -> AppTheme.colors.accent.text
                         ImmersiveMenuAction.REGENERATE -> AppTheme.colors.accent.text
                         ImmersiveMenuAction.DELETE -> AppTheme.colors.status.onError
                         else -> AppTheme.colors.text.primary

@@ -14,6 +14,7 @@ import com.situ.aichat.data.model.AppSettings
 import com.situ.aichat.data.model.AutoBackupConfig
 import com.situ.aichat.pet.EggNestPact
 import com.situ.aichat.prompt.PromptModuleService
+import com.situ.aichat.prompt.style.ToneLearned
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -105,6 +106,7 @@ class SettingsRepository @Inject constructor(
             antiSlopPenaltyIntensity = p[KEY_ANTI_SLOP_PENALTY_INTENSITY] ?: "light",
             humanTypingEnabled = p[KEY_HUMAN_TYPING] ?: false,
             humanTypingIntensity = p[KEY_HUMAN_TYPING_INTENSITY] ?: "light",
+            antiSlopLevel = p[KEY_ANTI_SLOP_LEVEL] ?: AppSettings.ANTI_SLOP_OFF,
             cacheSaverEnabled = p[KEY_CACHE_SAVER] ?: false,
             // 主动消息通知（P6.1c）——这两项需真正持久化并被调度器读取，故在此显式映射。
             notificationsEnabled = p[KEY_NOTIFICATIONS_ENABLED] ?: true,
@@ -283,6 +285,7 @@ class SettingsRepository @Inject constructor(
             p[KEY_ANTI_SLOP_PENALTY_INTENSITY] = s.antiSlopPenaltyIntensity
             p[KEY_HUMAN_TYPING] = s.humanTypingEnabled
             p[KEY_HUMAN_TYPING_INTENSITY] = s.humanTypingIntensity
+            p[KEY_ANTI_SLOP_LEVEL] = s.antiSlopLevel
             p[KEY_CACHE_SAVER] = s.cacheSaverEnabled
             p[KEY_NOTIFICATIONS_ENABLED] = s.notificationsEnabled
             p[KEY_ECONOMY_NOTIFICATION_TIER] = s.economyNotificationTier
@@ -717,6 +720,11 @@ class SettingsRepository @Inject constructor(
     suspend fun setHumanTypingIntensity(raw: String) =
         dataStore.edit { it[KEY_HUMAN_TYPING_INTENSITY] = if (raw == "standard") "standard" else "light" }
 
+    /** 运行时去 AI 腔开关：开 = [AppSettings.ANTI_SLOP_STRIP]，关 = [AppSettings.ANTI_SLOP_OFF]。 */
+    suspend fun setAntiSlopLevel(raw: String) = dataStore.edit {
+        it[KEY_ANTI_SLOP_LEVEL] = if (raw == AppSettings.ANTI_SLOP_STRIP) raw else AppSettings.ANTI_SLOP_OFF
+    }
+
     /** 省钱模式开关（时间感知四期·图纸二）。 */
     suspend fun setCacheSaverEnabled(enabled: Boolean) = dataStore.edit { it[KEY_CACHE_SAVER] = enabled }
 
@@ -900,6 +908,30 @@ class SettingsRepository @Inject constructor(
     suspend fun setMeetingMemoryMaxLength(chars: Int) =
         dataStore.edit { it[KEY_MEETING_MEMORY_MAX_LENGTH] = chars.coerceAtLeast(200) }
 
+    /**
+     * 去 AI 味学到的东西（方案 §7）：改写对照、负例、语风样本。
+     * 只读不缓存——它是提示词装配的输入，一轮读一次，DataStore 走内存缓存，开销可忽略。
+     */
+    val toneLearned: Flow<ToneLearned> = dataStore.data.map { ToneLearned.parse(it[KEY_TONE_LEARNED]) }
+
+    /** 用户把 AI 的某句话改成自己的说法（「太 AI 了」弹窗保存时调用）：同时记一对改写与一条负例。 */
+    suspend fun recordToneRewrite(original: String, edited: String) = dataStore.edit { prefs ->
+        val now = System.currentTimeMillis()
+        val current = ToneLearned.parse(prefs[KEY_TONE_LEARNED])
+        val next = current.withRewrite(original, edited, now).withNegative(original, now)
+        prefs[KEY_TONE_LEARNED] = ToneLearned.encode(next)
+    }
+
+    /** 记住用户自己打的一句（语风库）：不合格的句子在这里就被判掉，调用方不必预判。 */
+    suspend fun recordStyleSample(text: String) = dataStore.edit { prefs ->
+        val current = ToneLearned.parse(prefs[KEY_TONE_LEARNED])
+        val next = current.withStyleSample(text, System.currentTimeMillis())
+        if (next !== current) prefs[KEY_TONE_LEARNED] = ToneLearned.encode(next)
+    }
+
+    /** 清空学到的一切（设置页「清空」用）。 */
+    suspend fun clearToneLearned() = dataStore.edit { it.remove(KEY_TONE_LEARNED) }
+
     // internal：LegacyImmersiveMigration（沉浸模式移除的一次性 DataStore 迁移）需按键还原快照值。
     internal companion object {
         val KEY_PROMPT_MODULES = stringPreferencesKey("prompt_modules_json")
@@ -975,6 +1007,9 @@ class SettingsRepository @Inject constructor(
         val KEY_VOICE_MODULE_ORDER_MIGRATED = booleanPreferencesKey("voice_module_order_migrated_v1")
         val KEY_HUMAN_TYPING = booleanPreferencesKey("human_typing_enabled")
         val KEY_HUMAN_TYPING_INTENSITY = stringPreferencesKey("human_typing_intensity")
+        val KEY_ANTI_SLOP_LEVEL = stringPreferencesKey("anti_slop_level")
+        /** 去 AI 味学到的东西（改写对照 / 负例 / 语风样本）——单独一个 key，不进 AppSettings、不进备份。 */
+        val KEY_TONE_LEARNED = stringPreferencesKey("tone_learned_json")
         val KEY_CACHE_SAVER = booleanPreferencesKey("cache_saver_enabled")
         val KEY_NOTIF_DISABLED_CHARS = stringSetPreferencesKey("notif_disabled_char_ids")
         val KEY_BUSY_MODE_ENABLED = booleanPreferencesKey("busy_mode_enabled")

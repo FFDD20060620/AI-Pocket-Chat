@@ -50,6 +50,7 @@ import com.situ.aichat.data.repository.ApiConfigRepository
 import com.situ.aichat.data.repository.CharacterRepository
 import com.situ.aichat.data.repository.ConversationRepository
 import com.situ.aichat.data.repository.MessageRepository
+import com.situ.aichat.data.repository.SettingsRepository
 import com.situ.aichat.data.repository.PetRepository
 import com.situ.aichat.data.repository.PetWriteLock
 import com.situ.aichat.data.repository.StickerRepository
@@ -78,6 +79,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.coroutineContext
@@ -135,6 +137,8 @@ internal class AssistantTurnEngine(
     private val errorFlow: MutableStateFlow<String?>,
     private val infoToastFlow: MutableStateFlow<String?>,
     private val isDelivering: MutableStateFlow<Boolean>,
+    /** 去 AI 味学到的东西（方案 §7）从这读：每轮内存缓存，开销可忽略。 */
+    private val settingsRepo: SettingsRepository,
 ) {
     /** 批4 4-8：异常 → 用户可读中文短句（LlmError 自带本地化；Http 文案剥 " - " 后的原始错误体）。 */
     private fun userFacingError(e: Exception): String = when (e) {
@@ -176,6 +180,8 @@ internal class AssistantTurnEngine(
             return
         }
         val promptStrings = PromptStrings(appContext)
+        // 去 AI 味学到的东西（方案 §7）：一轮读一次，失败也照样聊天（parse 已兜底成空）。
+        val toneLearned = settingsRepo.toneLearned.first()
         val history = messageRepo.recentChronological(conversationUuid, HISTORY_FETCH_LIMIT)
         // 引用一期：窗口内带引用的消息，其「被引用那条」的时间戳 + 原始正文预取一次（窗口内命中零查库、
         // 一条引用都没有时零查库）——引用行的时间锚与表情语义都靠它（图纸 §3.1）。
@@ -334,6 +340,7 @@ internal class AssistantTurnEngine(
             userProfile = userProfile,
             appSettings = settings,
             strings = promptStrings,
+            toneLearned = toneLearned,
             structuredMemory = structuredMemory,
             milestones = milestones,
             todaySchedule = todaySchedule,

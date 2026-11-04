@@ -3824,4 +3824,21 @@
 	<string name="clog_reader_jump_bottom">Jump to end</string>
 	<string name="clog_reply_reasoning">The model spent %1$s tk thinking this turn (only the amount was logged, not the thinking itself).</string>
 	<string name="clog_reply_empty">(Empty)</string>
+	<string name="settings_anti_slop_strip_title">Strip canned AI lines</string>
+	<string name="settings_anti_slop_strip_desc">Drop whole lines like "How can I help you" or "Hope this helps" before saving; if nothing is left, the original stays.</string>
+
+	<!-- Human-feel phase 2, part D: "too AI" rewrite + what it learns (plan §7) -->
+	<string name="chat_menu_too_ai">Too AI</string>
+	<string name="tone_edit_title">Too AI?</string>
+	<string name="tone_edit_hint">Rewrite it the way you would say it. It will follow. Cancel to leave it alone.</string>
+	<string name="tone_edit_placeholder">e.g. Remember to drink water when you are busy.</string>
+	<string name="tone_edit_save">Save</string>
+	<string name="tone_edit_cancel">Cancel</string>
+	<string name="tone_edit_saved">Saved. It will remember.</string>
+	<string name="pb_learn_rewrite_head">[Things you have rewritten] These are what you used to say, rewritten by the user. Do not say the originals again.</string>
+	<string name="pb_learn_rewrite_item">- before: \"%1$s\" -> after: \"%2$s\"</string>
+	<string name="pb_learn_negative_head">Also avoid these phrasings:</string>
+	<string name="pb_learn_negative_item">- %1$s</string>
+	<string name="pb_learn_style_head">[How you type] These lines were typed by the user. Learn the tone only; never copy the content:</string>
+	<string name="pb_learn_style_item">- %1$s</string>
 </resources>
