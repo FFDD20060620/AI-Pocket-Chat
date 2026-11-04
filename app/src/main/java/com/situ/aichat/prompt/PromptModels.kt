@@ -40,6 +40,9 @@ enum class SystemModuleType {
     // 这个管「像人打字」：标点、断句、不完美、不总结。默认位置 SUFFIX、只在线聊天启用；老用户由
     // SettingsRepository.migratePromptModuleVoiceOnce 一次性归位到 QUALITY_CONTROL 之后（过审：与「防重复」相邻）。
     @SerialName("voiceRules") VOICE_RULES,
+    // 「去 AI 味」模块（2026-11-05）：酒馆《狐神抚》杀八股八篇裁剪合并成 36 条禁令。
+    // 与 VOICE_RULES 分工——那个管「像人打字」的正面写法，这个只管「不许这么写」。
+    @SerialName("antiSlop") ANTI_SLOP,
     @SerialName("moodExpression") MOOD_EXPRESSION,
     @SerialName("generalInstructions") GENERAL_INSTRUCTIONS,
     @SerialName("stickerLibrary") STICKER_LIBRARY,
@@ -75,6 +78,7 @@ enum class SystemModuleType {
             CHAT_FORMAT -> "聊天格式"
             QUALITY_CONTROL -> "防重复与质量"
             VOICE_RULES -> "说话口气"
+            ANTI_SLOP -> "去 AI 味"
             MOOD_EXPRESSION -> "情绪表达"
             GENERAL_INSTRUCTIONS -> "通用指令"
             STICKER_LIBRARY -> "表情包"
@@ -89,7 +93,7 @@ enum class SystemModuleType {
     /** 内容是否可编辑（可编辑模块允许用户填写自定义 content 覆盖默认生成）。 */
     val isContentEditable: Boolean
         get() = when (this) {
-            CORE_RULES, SCENARIO, RESPONSE_STYLE, CHAT_FORMAT, QUALITY_CONTROL, VOICE_RULES,
+            CORE_RULES, SCENARIO, RESPONSE_STYLE, CHAT_FORMAT, QUALITY_CONTROL, VOICE_RULES, ANTI_SLOP,
             MOOD_EXPRESSION, GENERAL_INSTRUCTIONS, BUSY_REPLY_INSTRUCTION -> true
             else -> false
         }
@@ -100,7 +104,7 @@ enum class SystemModuleType {
      */
     val defaultPosition: PromptModulePosition
         get() = when (this) {
-            RESPONSE_STYLE, CHAT_FORMAT, QUALITY_CONTROL, VOICE_RULES, MOOD_EXPRESSION, GENERAL_INSTRUCTIONS,
+            RESPONSE_STYLE, CHAT_FORMAT, QUALITY_CONTROL, VOICE_RULES, ANTI_SLOP, MOOD_EXPRESSION, GENERAL_INSTRUCTIONS,
             TIME_AWARENESS, BUSY_REPLY_INSTRUCTION, CURRENT_MOMENT ->
                 PromptModulePosition.SUFFIX
             else -> PromptModulePosition.PREFIX
@@ -115,7 +119,7 @@ enum class SystemModuleType {
             BUSY_REPLY_INSTRUCTION -> setOf(PromptScene.BUSY_REPLY)
             // 短信腔四件线下退场（两语境模型 2026-07-12）：只需声明 ONLINE_CHAT 位——装配端
             // moduleScene 二值化使语音/忙碌一律按此位走（数据即语义）。
-            CHAT_FORMAT, RESPONSE_STYLE, VOICE_RULES, MOOD_EXPRESSION, STICKER_LIBRARY -> setOf(PromptScene.ONLINE_CHAT)
+            CHAT_FORMAT, RESPONSE_STYLE, VOICE_RULES, ANTI_SLOP, MOOD_EXPRESSION, STICKER_LIBRARY -> setOf(PromptScene.ONLINE_CHAT)
             // 「我们的日子」卷二：在线聊天 + 语音通话（提案默认场景）；线下见面不注入（E54）。
             OUR_DAYS -> setOf(PromptScene.ONLINE_CHAT, PromptScene.VOICE_CALL)
             else -> null
@@ -146,6 +150,7 @@ enum class SystemModuleType {
             CHAT_FORMAT -> "chatFormat"
             QUALITY_CONTROL -> "qualityControl"
             VOICE_RULES -> "voiceRules"
+            ANTI_SLOP -> "antiSlop"
             MOOD_EXPRESSION -> "moodExpression"
             GENERAL_INSTRUCTIONS -> "generalInstructions"
             STICKER_LIBRARY -> "stickerLibrary"

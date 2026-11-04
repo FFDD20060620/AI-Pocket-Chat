@@ -408,6 +408,20 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    /** 一次性迁移（2026-11-05）：老用户全局/角色模块末尾补「去 AI 味」。守卫只跑一次；解码失败=不变不抛仍置 flag。 */
+    suspend fun migratePromptModuleAntiSlopOnce() {
+        dataStore.edit { p ->
+            if (p[KEY_ANTI_SLOP_MODULE_MIGRATED] == true) return@edit
+            val result = PromptModuleService.migratePromptModuleAntiSlop(
+                globalJson = p[KEY_PROMPT_MODULES] ?: "",
+                characterJson = p[KEY_CHARACTER_PROMPT_MODULES] ?: "",
+            )
+            result?.first?.let { p[KEY_PROMPT_MODULES] = it }
+            result?.second?.let { p[KEY_CHARACTER_PROMPT_MODULES] = it }
+            p[KEY_ANTI_SLOP_MODULE_MIGRATED] = true
+        }
+    }
+
     suspend fun migratePromptModuleOurDaysOnce() {
         // 读-检-迁-写同一 edit 事务（原子·不占主线程·同 [migratePromptModuleTimeOrderOnce]）。
         dataStore.edit { p ->
@@ -1005,6 +1019,7 @@ class SettingsRepository @Inject constructor(
         val KEY_ANTI_SLOP_PENALTY = booleanPreferencesKey("anti_slop_penalty_enabled")
         val KEY_ANTI_SLOP_PENALTY_INTENSITY = stringPreferencesKey("anti_slop_penalty_intensity")
         val KEY_VOICE_MODULE_ORDER_MIGRATED = booleanPreferencesKey("voice_module_order_migrated_v1")
+    val KEY_ANTI_SLOP_MODULE_MIGRATED = booleanPreferencesKey("anti_slop_module_migrated")
         val KEY_HUMAN_TYPING = booleanPreferencesKey("human_typing_enabled")
         val KEY_HUMAN_TYPING_INTENSITY = stringPreferencesKey("human_typing_intensity")
         val KEY_ANTI_SLOP_LEVEL = stringPreferencesKey("anti_slop_level")

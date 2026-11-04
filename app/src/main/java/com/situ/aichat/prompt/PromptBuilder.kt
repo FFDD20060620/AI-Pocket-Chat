@@ -925,6 +925,7 @@ object PromptBuilder {
         SystemModuleType.CORE_RULES,
         SystemModuleType.SCENARIO,
         SystemModuleType.VOICE_RULES,
+        SystemModuleType.ANTI_SLOP,
         SystemModuleType.RESPONSE_STYLE,
         SystemModuleType.CHAT_FORMAT,
         SystemModuleType.QUALITY_CONTROL,
@@ -955,6 +956,7 @@ object PromptBuilder {
         SystemModuleType.RESPONSE_STYLE -> buildResponseStyleContent(strings, textingTone)
         SystemModuleType.QUALITY_CONTROL -> buildQualityControlContent(strings)
         SystemModuleType.VOICE_RULES -> buildVoiceRulesContent(strings)
+        SystemModuleType.ANTI_SLOP -> buildAntiSlopContent()
         SystemModuleType.MOOD_EXPRESSION -> buildMoodExpressionContent(strings)
         SystemModuleType.GENERAL_INSTRUCTIONS -> buildGeneralInstructionsContent(strings)
         SystemModuleType.BUSY_REPLY_INSTRUCTION -> busyReplyTemplate()

@@ -49,6 +49,7 @@ object PromptModuleService {
         SystemModuleType.BUSY_REPLY_INSTRUCTION to "10000001-0000-0000-0000-000000000015",
         SystemModuleType.OUR_DAYS to "10000001-0000-0000-0000-000000000017", // 「我们的日子」卷二（…016 已被 CURRENT_MOMENT 占）
         SystemModuleType.VOICE_RULES to "10000001-0000-0000-0000-000000000018", // 说话口气（活人感二期 B 件）
+        SystemModuleType.ANTI_SLOP to "10000001-0000-0000-0000-000000000019", // 去 AI 味（2026-11-05）
     )
 
     private fun systemModuleUUID(type: SystemModuleType): String =
@@ -440,6 +441,52 @@ object PromptModuleService {
             )
         }
         return true
+    }
+
+    // MARK: - 去 AI 味模块落地（2026-11-05）
+
+    /**
+     * 把 [SystemModuleType.ANTI_SLOP] 追加到列表末尾（不进位）。
+     *
+     * 用户可能已经手调过顺序，所以这里**只 append、不重排**：新模块落在最后，仍属于 SUFFIX 区，
+     * 对「近因偏差」反而有利。已存在 → false（幂等）。
+     */
+    fun migrateAntiSlopModule(modules: MutableList<PromptModule>): Boolean {
+        val type = SystemModuleType.ANTI_SLOP
+        if (modules.any { it.systemModuleType == type }) return false
+        val next = (modules.maxOfOrNull { it.sortOrder } ?: -1) + 1
+        modules.add(
+            PromptModule(
+                id = systemModuleUUID(type), name = type.displayName, content = "", sortOrder = next, isEnabled = true,
+                isSystemGenerated = true, systemModuleType = type, position = type.defaultPosition, enabledScenes = type.defaultEnabledScenes,
+            ),
+        )
+        return true
+    }
+
+    /** 对全局 + 每个角色覆盖各自应用 [migrateAntiSlopModule]；返回语义同 [migratePromptModuleTimeOrder]。 */
+    fun migratePromptModuleAntiSlop(globalJson: String, characterJson: String): Pair<String?, String?>? {
+        val newGlobal: String? = globalJson
+            .takeIf { it.isNotEmpty() }
+            ?.let { decodeModules(it) }
+            ?.toMutableList()
+            ?.takeIf { migrateAntiSlopModule(it) }
+            ?.let { encodeModules(it) }
+
+        var characterChanged = false
+        val dict = decodeCharacterDict(characterJson)
+        val newDict = dict.mapValues { (_, mods) ->
+            val mutable = mods.toMutableList()
+            if (migrateAntiSlopModule(mutable)) {
+                characterChanged = true
+                mutable.toList()
+            } else {
+                mods
+            }
+        }
+        val newCharacter = if (characterChanged) encodeCharacterDict(newDict) else null
+
+        return if (newGlobal == null && newCharacter == null) null else newGlobal to newCharacter
     }
 
     /** 对全局 + 每个角色覆盖各自应用 [migrateVoiceRulesAfterQualityControl]；返回语义同 [migratePromptModuleTimeOrder]。 */

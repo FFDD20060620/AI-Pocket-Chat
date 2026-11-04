@@ -19,6 +19,9 @@ internal object AiToneDetector {
         ELEVATION("升华结尾"),
         TEMPLATE_OPENER("模板开场"),
         PREACHING("说教"),
+        WAITING_TAIL("等待式结尾"),
+        ECHO("话语余波"),
+        REPORT_TONE("报告腔"),
     }
 
     internal data class Hit(val rule: Rule, val snippet: String)
@@ -36,6 +39,15 @@ internal object AiToneDetector {
         Rule.TEMPLATE_OPENER to Regex("^(首先|其次|再次|最后|另外|此外|总之|综上)[，,、：:]"),
         Rule.TEMPLATE_OPENER to Regex("值得(注意|一提)的是"),
         Rule.PREACHING to Regex("(记住|要记住|请记住)[，,]"),
+        // 等待式结尾（酒馆《狐神抚》去欧规范 §31：整句只等回复 = 最典型的 AI 收尾）
+        Rule.WAITING_TAIL to Regex("^(我)?在等(你|您)(的)?(回复|开口|回答|回应|决定|说话)[。！!]?$"),
+        Rule.WAITING_TAIL to Regex("^等你(的)?(回复|开口|决定|说话)[。！!]?$"),
+        Rule.WAITING_TAIL to Regex("^等着你[^。！？!?]{0,6}[。！!]?$"),
+        // 报告腔（禁机械词语 §5）
+        Rule.REPORT_TONE to Regex("呈现出.{0,10}的状态"),
+        Rule.REPORT_TONE to Regex("^从某种意义上"),
+        Rule.REPORT_TONE to Regex("^综上所述"),
+        Rule.REPORT_TONE to Regex("^值得注意的是"),
     )
 
     /** 句尾命中就截掉（说教式收尾，前面的话还留着）。 */
@@ -43,6 +55,13 @@ internal object AiToneDetector {
         Regex("[，,]?希望(你|您)(今天|以后|每天)?(都)?(能|可以)?(开心|好好的|顺利|加油)[^。！？!?]*[。！!]?$"),
         Regex("[，,]?(加油|共勉|祝你好运)[！!。]?$"),
         Regex("[，,]?相信(你|您)(一定|可以|能)[^。！？!?]*[。！!]?$"),
+        // 等待式结尾（长句里拖一句「在等你回复」→ 截掉，前半句保留）
+        Regex("[，,]?(我)?在等(你|您)(的)?(回复|回答|回应|开口|决定|说话)[^。！？!?]*[。！!]?$"),
+        Regex("[，,]?等你(的)?(回复|开口|决定|说话)[^。！？!?]*[。！!]?$"),
+        Regex("[，,]?等着你[^。！？!?]*[。！!]?$"),
+        // 话语余波（去欧规范 §15/§31）
+        Regex("[，,]?这句话(落下|传开|散开)[^。！？!?]*[。！!]?$"),
+        Regex("[，,]?话说完[，,]?[^。！？!?]*[。！!]?$"),
     )
 
     /** 命中明细（只用于日志与诊断，不参与「删不删」的判定）。 */

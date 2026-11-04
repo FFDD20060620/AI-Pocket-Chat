@@ -41,6 +41,24 @@ class AiToneDetectorTest {
     }
 
     @Test
+    fun waitingTailLine_isDropped() {
+        val out = AiToneDetector.strip("我先去洗个澡\n在等你回复")
+        assertEquals("我先去洗个澡", out)
+    }
+
+    @Test
+    fun inlineWaitingTail_isCut() {
+        val out = AiToneDetector.strip("我先去忙了，在等你回复")
+        assertEquals("我先去忙了", out)
+    }
+
+    @Test
+    fun reportToneLine_isDropped() {
+        val out = AiToneDetector.strip("值得注意的是，这件事并不简单")
+        assertTrue(out.isEmpty())
+    }
+
+    @Test
     fun detect_reportsRule() {
         val hits = AiToneDetector.detect("作为一个人工智能，我无法访问你的相册")
         assertTrue(hits.any { it.rule == AiToneDetector.Rule.META_AI })

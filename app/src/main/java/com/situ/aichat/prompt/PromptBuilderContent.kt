@@ -4,6 +4,7 @@ import com.situ.aichat.R
 import com.situ.aichat.data.model.currentAge
 import com.situ.aichat.openloop.OpenLoopScanService
 import com.situ.aichat.promise.PromiseInjectionRenderer
+import com.situ.aichat.prompt.style.ANTI_SLOP_RULES
 import com.situ.aichat.prompt.style.LengthTone
 import com.situ.aichat.prompt.style.LogicTone
 import com.situ.aichat.prompt.style.PunctuationTone
@@ -329,6 +330,8 @@ internal fun buildQualityControlContent(s: PromptStrings): String =
  * 刻意与 [buildResponseStyleContent] 分工：那边管「短」，这里管「像人打字」——标点、断句、允许不完美、不总结。
  * 结尾给三组极短示例（few-shot 比形容词管用），全部走资源串，方便用户自己改。
  */
+internal fun buildAntiSlopContent(): String = ANTI_SLOP_RULES
+
 internal fun buildVoiceRulesContent(s: PromptStrings): String =
     listOf(
         s.s(R.string.pb_voice_title),
