@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Refresh
@@ -214,6 +215,7 @@ private fun menuActionIcon(action: ImmersiveMenuAction) = when (action) {
     ImmersiveMenuAction.COPY -> Icons.Filled.ContentCopy
     ImmersiveMenuAction.SAVE_IMAGE -> Icons.Filled.FileDownload
     ImmersiveMenuAction.QUOTE -> Icons.Filled.FormatQuote
+    ImmersiveMenuAction.TOO_AI -> Icons.Filled.Edit
     ImmersiveMenuAction.REGENERATE -> Icons.Filled.Refresh
     ImmersiveMenuAction.DELETE -> Icons.Filled.Delete
 }

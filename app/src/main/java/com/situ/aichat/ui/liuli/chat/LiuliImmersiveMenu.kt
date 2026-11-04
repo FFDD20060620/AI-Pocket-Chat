@@ -171,6 +171,7 @@ internal fun LiuliImmersiveMenuOverlay(
                     }
                     ImmersiveMenuAction.SAVE_IMAGE -> actions.onSaveImage(message)
                     ImmersiveMenuAction.QUOTE -> actions.onQuote(message)
+                    ImmersiveMenuAction.TOO_AI -> actions.onTooAi(message)
                     ImmersiveMenuAction.REGENERATE -> actions.onRegenerate()
                     ImmersiveMenuAction.DELETE -> actions.onDelete(message)
                 }

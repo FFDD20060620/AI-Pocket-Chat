@@ -2,6 +2,8 @@ package com.situ.aichat.ui.chat
 
 import android.content.Context
 import android.widget.Toast
+
+import com.situ.aichat.R
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log

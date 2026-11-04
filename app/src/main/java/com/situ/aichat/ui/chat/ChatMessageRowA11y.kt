@@ -62,6 +62,7 @@ internal fun rememberMessageRowA11yActions(
                     }
                     ImmersiveMenuAction.SAVE_IMAGE -> actions.onSaveImage(current)
                     ImmersiveMenuAction.QUOTE -> actions.onQuote(current)
+                    ImmersiveMenuAction.TOO_AI -> actions.onTooAi(current)
                     ImmersiveMenuAction.REGENERATE -> actions.onRegenerate()
                     ImmersiveMenuAction.DELETE -> actions.onDelete(current)
                 }
