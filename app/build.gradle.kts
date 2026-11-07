@@ -113,6 +113,14 @@ android {
                 signingConfigs.getByName("release")
             else
                 signingConfigs.getByName("debug")
+            // 2026-11-07 卡顿优化 A 档：CI 只跑 assembleDebug，debug 包没 R8，Compose 代码原样执行，
+            // 体感就是「所有界面都卡」。这里给 debug 也开压缩+混淆，等 workflow 换成 assembleRelease 后可撤。
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
         release {
             isMinifyEnabled = true
