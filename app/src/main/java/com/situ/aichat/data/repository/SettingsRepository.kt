@@ -14,10 +14,17 @@ import com.situ.aichat.data.model.AppSettings
 import com.situ.aichat.data.model.AutoBackupConfig
 import com.situ.aichat.pet.EggNestPact
 import com.situ.aichat.prompt.PromptModuleService
+import com.situ.aichat.prompt.style.StyleSampler
 import com.situ.aichat.prompt.style.ToneLearned
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -924,9 +931,66 @@ class SettingsRepository @Inject constructor(
 
     /**
      * 去 AI 味学到的东西（方案 §7）：改写对照、负例、语风样本。
-     * 只读不缓存——它是提示词装配的输入，一轮读一次，DataStore 走内存缓存，开销可忽略。
+     * 读走内存快照（[toneLearnedSnapshot]），写走攒批（[noteStyleSample] / [flushStyleSamples]）。
+     * 2026-11-07 性能修：原先每发一条消息就 edit 一次整份设置文件，把几百 KB 的提示词 JSON 整个重写，
+     * 聊天页跟着重算，体感就是「发完卡一下」。
      */
     val toneLearned: Flow<ToneLearned> = dataStore.data.map { ToneLearned.parse(it[KEY_TONE_LEARNED]) }
+
+    private val toneScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val styleBuffer = mutableListOf<String>()
+    private val styleBufferLock = Any()
+    @Volatile private var toneLearnedCache: ToneLearned = ToneLearned.EMPTY
+    @Volatile private var styleFlushScheduled = false
+
+    init {
+        toneScope.launch {
+            dataStore.data.collect { toneLearnedCache = ToneLearned.parse(it[KEY_TONE_LEARNED]) }
+        }
+    }
+
+    /** 一轮提示词装配用的快照：内存直取，不碰磁盘。 */
+    fun toneLearnedSnapshot(): ToneLearned = toneLearnedCache
+
+    /**
+     * 记住用户自己打的一句（语风库）：只进内存缓冲，攒够 [STYLE_FLUSH_DELAY_MS] 或缓冲满才落盘一次。
+     * 不合格的句子在这里就被判掉，调用方不必预判。
+     */
+    fun noteStyleSample(text: String) {
+        if (!StyleSampler.isEligible(text)) return
+        synchronized(styleBufferLock) {
+            styleBuffer += text
+            if (styleBuffer.size > STYLE_BUFFER_LIMIT) styleBuffer.removeAt(0)
+        }
+        if (styleFlushScheduled) return
+        styleFlushScheduled = true
+        toneScope.launch {
+            delay(STYLE_FLUSH_DELAY_MS)
+            flushStyleSamples()
+        }
+    }
+
+    /** 把缓冲里的语风样本一次写进 DataStore；缓冲空时直接返回。 */
+    suspend fun flushStyleSamples() {
+        styleFlushScheduled = false
+        val batch = synchronized(styleBufferLock) {
+            styleBuffer.toList().also { styleBuffer.clear() }
+        }
+        if (batch.isEmpty()) return
+        val now = System.currentTimeMillis()
+        dataStore.edit { prefs ->
+            var current = ToneLearned.parse(prefs[KEY_TONE_LEARNED])
+            var changed = false
+            for (text in batch) {
+                val next = current.withStyleSample(text, now)
+                if (next !== current) {
+                    current = next
+                    changed = true
+                }
+            }
+            if (changed) prefs[KEY_TONE_LEARNED] = ToneLearned.encode(current)
+        }
+    }
 
     /** 用户把 AI 的某句话改成自己的说法（「太 AI 了」弹窗保存时调用）：同时记一对改写与一条负例。 */
     suspend fun recordToneRewrite(original: String, edited: String) = dataStore.edit { prefs ->
@@ -1025,6 +1089,10 @@ class SettingsRepository @Inject constructor(
         val KEY_ANTI_SLOP_LEVEL = stringPreferencesKey("anti_slop_level")
         /** 去 AI 味学到的东西（改写对照 / 负例 / 语风样本）——单独一个 key，不进 AppSettings、不进备份。 */
         val KEY_TONE_LEARNED = stringPreferencesKey("tone_learned_json")
+        /** 语风库攒批：缓冲满多少秒落盘一次（性能修 2026-11-07）。 */
+        const val STYLE_FLUSH_DELAY_MS = 10_000L
+        /** 语风库缓冲上限，超了丢最旧的，避免长时间不落盘时无限涨。 */
+        const val STYLE_BUFFER_LIMIT = 40
         val KEY_CACHE_SAVER = booleanPreferencesKey("cache_saver_enabled")
         val KEY_NOTIF_DISABLED_CHARS = stringSetPreferencesKey("notif_disabled_char_ids")
         val KEY_BUSY_MODE_ENABLED = booleanPreferencesKey("busy_mode_enabled")

@@ -79,7 +79,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.coroutineContext
@@ -180,8 +179,8 @@ internal class AssistantTurnEngine(
             return
         }
         val promptStrings = PromptStrings(appContext)
-        // 去 AI 味学到的东西（方案 §7）：一轮读一次，失败也照样聊天（parse 已兜底成空）。
-        val toneLearned = settingsRepo.toneLearned.first()
+        // 去 AI 味学到的东西（方案 §7）：直接取内存快照（2026-11-07 性能修），失败也照样聊天（parse 已兜底成空）。
+        val toneLearned = settingsRepo.toneLearnedSnapshot()
         val history = messageRepo.recentChronological(conversationUuid, HISTORY_FETCH_LIMIT)
         // 引用一期：窗口内带引用的消息，其「被引用那条」的时间戳 + 原始正文预取一次（窗口内命中零查库、
         // 一条引用都没有时零查库）——引用行的时间锚与表情语义都靠它（图纸 §3.1）。

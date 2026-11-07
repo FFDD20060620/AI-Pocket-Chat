@@ -862,8 +862,9 @@ class ChatViewModel @Inject constructor(
     // 公开发送入口薄委托（ChatScreen 直接调；公开 API 不变）。
     fun send(text: String): Boolean {
         val accepted = assistantTurnController.send(text)
-        // 语风库（方案 §7.1）：只收用户自己打的、像日常说话的短句；不合格的在 recordStyleSample 里就被判掉。
-        if (accepted) viewModelScope.launch { settingsRepo.recordStyleSample(text) }
+        // 语风库（方案 §7.1）：只收用户自己打的、像日常说话的短句；不合格的在这里就被判掉。
+        // 2026-11-07 性能修：攒批写（内存缓冲 + 10 秒落盘一次），不再每发一条就重写整份设置文件。
+        if (accepted) settingsRepo.noteStyleSample(text)
         return accepted
     }
     fun sendVoiceDraft() = assistantTurnController.sendVoiceDraft()
