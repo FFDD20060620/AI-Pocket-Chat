@@ -589,13 +589,13 @@ object PromptBuilder {
             }
             // 说话口气骰子（活人感二期 B 件·三旋钮，方案 §5.9）：每轮由代码掷一次，只影响这一条回复的标点/长短/逻辑。
             // 放在后置区（历史之后）、守卫卡之前：离生成点近，但不抢「现在卡」的物理末位；关掉开关则整段不出现。
-            if (effectiveScene == PromptScene.ONLINE_CHAT && appSettings.humanTypingEnabled) {
+            if (effectiveScene == PromptScene.ONLINE_CHAT && appSettings.humanTypingEnabled && !DiagnosticSwitches.CLEAN_BASELINE) {
                 val roll = StyleRoller.roll(character.uuid, System.nanoTime(), appSettings.humanTypingIntensity)
                 chatMessages.add(ChatMessageDto(role = ROLE_SYSTEM, content = buildToneRollContent(strings, roll)))
             }
             // 学到的说法（活人感二期 D 件·方案 §7）：改过的句子 / 被点名的负例 / 用户自己的口气。
             // 只在普通聊天注入；一条都没有时整段不出现（buildToneLearnedContent 返回 null）。
-            if (effectiveScene == PromptScene.ONLINE_CHAT) {
+            if (effectiveScene == PromptScene.ONLINE_CHAT && !DiagnosticSwitches.CLEAN_BASELINE) {
                 buildToneLearnedContent(strings, toneLearned)?.let {
                     chatMessages.add(ChatMessageDto(role = ROLE_SYSTEM, content = it))
                 }

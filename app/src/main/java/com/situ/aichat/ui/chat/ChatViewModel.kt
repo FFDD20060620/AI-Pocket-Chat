@@ -864,7 +864,7 @@ class ChatViewModel @Inject constructor(
         val accepted = assistantTurnController.send(text)
         // 语风库（方案 §7.1）：只收用户自己打的、像日常说话的短句；不合格的在这里就被判掉。
         // 2026-11-07 性能修：攒批写（内存缓冲 + 10 秒落盘一次），不再每发一条就重写整份设置文件。
-        if (accepted) settingsRepo.noteStyleSample(text)
+        if (accepted && !com.situ.aichat.prompt.DiagnosticSwitches.CLEAN_BASELINE) settingsRepo.noteStyleSample(text)
         return accepted
     }
     fun sendVoiceDraft() = assistantTurnController.sendVoiceDraft()

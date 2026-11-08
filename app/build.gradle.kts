@@ -25,7 +25,7 @@ val keystoreProperties = Properties().apply {
 // 版本一处改、守卫自动跟随检查那一份的 .so（见文件末尾的守卫与 §helpers）。
 // 版本号（2026-09-28 用户拍板·版本管理）：基础版本号人工定（里程碑时才改）；正式包再自动接上「提交总数」作编号，
 // 每个装到手机上的包都分得清、闪退对照表按编号存档。打包流程 = tools/release/build_release.sh。
-val appVersionBase = "0.1.0"
+val appVersionBase = "0.2.0"
 
 // 提交总数：main 上只增不减 → 天然递增的 versionCode。读不到 git（下载 zip、无 git 环境）时退回 1，照常可编译。
 // 懒求值：只有正式包任务真正需要时才跑 git，日常调试编译不碰。

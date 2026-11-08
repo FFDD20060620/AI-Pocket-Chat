@@ -279,7 +279,7 @@ internal class ChatReplyDeliverer(
         }
         // C 件（方案 §6）：运行时去 AI 腔。三道门控——普通聊天、非即时单条、用户开了才跑。
         // 删空了就退回原文：宁可留一句难听的，也不能让回合变空去触发重试链（B14）。
-        val toneReviewed = if (offlineSessionId == null && !immediate && settings.antiSlopLevel == AppSettings.ANTI_SLOP_STRIP) {
+        val toneReviewed = if (offlineSessionId == null && !immediate && settings.antiSlopLevel == AppSettings.ANTI_SLOP_STRIP && !com.situ.aichat.prompt.DiagnosticSwitches.CLEAN_BASELINE) {
             val reviewed = split.map { AiToneDetector.strip(it) }.filter { it.isNotEmpty() }
             reviewed.ifEmpty { split }
         } else {
