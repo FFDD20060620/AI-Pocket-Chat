@@ -116,7 +116,7 @@ fun buildSystemPromptWithSuffixes(
         .filter { it.isEnabled }
         .filter { (it.enabledScenes ?: PromptScene.entries.toSet()).contains(scene) }
         // 诊断对照包：本次新增的两个模块不装配（见 DiagnosticSwitches，验证后删除）。
-        .filter { !DiagnosticSwitches.hides(it.systemModuleType) }
+        .filter { it.systemModuleType?.let { t -> !DiagnosticSwitches.hides(t) } ?: true }
         .sortedBy { it.sortOrder }
 
     val prefixModules = enabledModules.filter { it.position == PromptModulePosition.PREFIX }
